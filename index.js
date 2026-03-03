@@ -13,6 +13,9 @@ const manifest = {
             type: 'other',
             id: 'stremio-status',
             name: '📡 Statut des Addons',
+            extra: [
+                { name: 'genre', isRequired: false }
+            ]
         }
     ],
     resources: ['catalog'],
@@ -21,7 +24,7 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-builder.defineCatalogHandler(async ({ type, id }) => {
+builder.defineCatalogHandler(async ({ type, id, extra }) => {
   try {
     const [pageResponse, heartbeatResponse] = await Promise.all([
       axios.get(`${UPTIME_KUMA_URL}/api/status-page/stremiofr-addons`, {
@@ -41,6 +44,9 @@ builder.defineCatalogHandler(async ({ type, id }) => {
         const monitorHeartbeats = heartbeats[monitor.id] || [];
         const lastHeartbeat = monitorHeartbeats[monitorHeartbeats.length - 1];
         const isUp = lastHeartbeat ? lastHeartbeat.status === 1 : false;
+
+        // Filtre par genre si sélectionné
+        if (extra?.genre && extra.genre !== group.name) continue;
 
         metas.push({
           id: `status-${monitor.id}`,
