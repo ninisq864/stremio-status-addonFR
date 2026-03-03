@@ -22,33 +22,42 @@ const manifest = {
 const builder = new addonBuilder(manifest);
 
 builder.defineCatalogHandler(async ({ type, id }) => {
-    try {
-        const response = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/stremiofr-addons`, {
-            headers: { 'Accept': 'application/json' }
+  try {
+    const [pageResponse, heartbeatResponse] = await Promise.all([
+      axios.get(`${UPTIME_KUMA_URL}/api/status-page/stremiofr-addons`, {
+        headers: { 'Accept': 'application/json' }
+      }),
+      axios.get(`${UPTIME_KUMA_URL}/api/status-page/heartbeat/stremiofr-addons`, {
+        headers: { 'Accept': 'application/json' }
+      })
+    ]);
+
+    const groups = pageResponse.data.publicGroupList || [];
+    const heartbeats = heartbeatResponse.data.heartbeatList || {};
+    const metas = [];
+
+    for (const group of groups) {
+      for (const monitor of group.monitorList) {
+        const monitorHeartbeats = heartbeats[monitor.id] || [];
+        const lastHeartbeat = monitorHeartbeats[monitorHeartbeats.length - 1];
+        const isUp = lastHeartbeat ? lastHeartbeat.status === 1 : false;
+
+        metas.push({
+          id: `status-${monitor.id}`,
+          type: 'other',
+          name: `${isUp ? '✅' : '❌'} ${monitor.name}`,
+          poster: 'https://i.imgur.com/8yPVxJJ.png',
+          description: `Groupe: ${group.name}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}`,
+          genres: [group.name],
         });
-
-        const groups = response.data.publicGroupList || [];
-        const metas = [];
-
-        for (const group of groups) {
-            for (const monitor of group.monitorList) {
-                const isUp = monitor.status === 1;
-                metas.push({
-                    id: `status-${monitor.id}`,
-                    type: 'other',
-                    name: `${isUp ? '✅' : '❌'} ${monitor.name}`,
-                    poster: 'https://i.imgur.com/8yPYxJJ.png',
-                    description: `Groupe: ${group.name}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}`,
-                    genres: [group.name],
-                });
-            }
-        }
-
-        return { metas };
-    } catch (e) {
-        console.error('Erreur API:', e.message);
-        return { metas: [] };
+      }
     }
+
+    return { metas };
+  } catch (e) {
+    console.error('Erreur API:', e.message);
+    return { metas: [] };
+  }
 });
 
 serveHTTP(builder.getInterface(), { port: process.env.PORT || 7000 });
