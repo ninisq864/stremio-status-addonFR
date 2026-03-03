@@ -9,18 +9,16 @@ const manifest = {
     name: '📡 Stremio FR - Statut Des Addons',
     description: 'Statut en temps réel des addons et instances Stremio FR',
     catalogs: [
-        {
-            type: 'other',
-            id: 'stremio-status',
-            name: '📡 Statut des Addons',
-            extra: [
-                { name: 'genre', isRequired: false }
-            ]
-        }
-    ],
-    resources: ['catalog'],
-    types: ['other'],
-};
+    {
+        type: 'other',
+        id: 'stremio-status',
+        name: '📡 Statut des Addons',
+        extra: [
+            { name: 'genre', isRequired: false }
+        ],
+        extraSupported: ['genre']
+    }
+],
 
 const builder = new addonBuilder(manifest);
 
