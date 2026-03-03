@@ -23,7 +23,7 @@ const builder = new addonBuilder(manifest);
 
 builder.defineCatalogHandler(async ({ type, id }) => {
     try {
-        const response = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/stremio-addons`, {
+        const response = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/stremiofr-addons`, {
             headers: { 'Accept': 'application/json' }
         });
 
