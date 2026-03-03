@@ -3,6 +3,17 @@ const axios = require('axios');
 
 const UPTIME_KUMA_URL = 'https://uptime-kuma-production-7c44.up.railway.app';
 
+// Logos officiels par groupe
+const GROUP_POSTERS = {
+  'AIOStreams':   'https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png',
+  'AIOMetadata': 'https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png',
+  'StremThru':   'https://raw.githubusercontent.com/MunifTanjim/stremthru/refs/heads/main/docs/logo.png',
+  'COMET':       'https://raw.githubusercontent.com/g0ldyy/comet/main/comet/assets/logo.png',
+  'StreamFusion':'https://raw.githubusercontent.com/LimeDrive/stream-fusion/main/stream_fusion/static/images/logo.png',
+};
+
+const DEFAULT_POSTER = 'https://i.imgur.com/8yPVxJJ.png';
+
 const manifest = {
     id: 'fr.stremio.status',
     version: '1.0.0',
@@ -41,6 +52,9 @@ builder.defineCatalogHandler(async ({ type, id, extra }) => {
     const metas = [];
 
     for (const group of groups) {
+      const posterKey = Object.keys(GROUP_POSTERS).find(k => group.name.includes(k));
+      const groupPoster = GROUP_POSTERS[posterKey] || DEFAULT_POSTER;
+
       for (const monitor of group.monitorList) {
         const monitorHeartbeats = heartbeats[monitor.id] || [];
         const lastHeartbeat = monitorHeartbeats[monitorHeartbeats.length - 1];
@@ -52,7 +66,7 @@ builder.defineCatalogHandler(async ({ type, id, extra }) => {
           id: `status-${monitor.id}`,
           type: 'other',
           name: `${isUp ? '✅' : '❌'} ${monitor.name}`,
-          poster: 'https://i.imgur.com/8yPVxJJ.png',
+          poster: groupPoster,
           description: `Groupe: ${group.name}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}`,
           genres: [group.name],
         });
