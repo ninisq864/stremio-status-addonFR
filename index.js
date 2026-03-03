@@ -3,13 +3,12 @@ const axios = require('axios');
 
 const UPTIME_KUMA_URL = 'https://uptime-kuma-production-7c44.up.railway.app';
 
-// Logos officiels par groupe
 const GROUP_POSTERS = {
   'AIOStreams':   'https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png',
-  'AIOMetadata': 'https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png',
-  'StremThru':   'https://raw.githubusercontent.com/MunifTanjim/stremthru/refs/heads/main/docs/logo.png',
-  'COMET':       'https://raw.githubusercontent.com/g0ldyy/comet/main/comet/assets/logo.png',
-  'StreamFusion':'https://raw.githubusercontent.com/LimeDrive/stream-fusion/main/stream_fusion/static/images/logo.png',
+  'AIOMetadata': 'https://aiometadata.elfhosted.com/logo.png',
+  'StremThru':   'https://i.imgur.com/vhQAnad.png',
+  'COMET':       'https://i.imgur.com/jmVoVMu.jpeg',
+  'StreamFusion':'https://i.imgur.com/jOzd3Oi.png',
 };
 
 const DEFAULT_POSTER = 'https://i.imgur.com/8yPVxJJ.png';
