@@ -4,11 +4,11 @@ const axios = require('axios');
 const UPTIME_KUMA_URL = 'https://uptime-kuma-production-7c44.up.railway.app';
 
 const GROUP_POSTERS = {
-  'AIOStreams':   'https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png',
-  'AIOMetadata': 'https://aiometadata.elfhosted.com/logo.png',
-  'StremThru':   'https://i.imgur.com/vhQAnad.png',
-  'COMET':       'https://i.imgur.com/jmVoVMu.jpeg',
-  'StreamFusion':'https://i.imgur.com/jOzd3Oi.png',
+  'AIOStreams':    'https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png',
+  'AIOMetadata':  'https://aiometadata.elfhosted.com/logo.png',
+  'StremThru':    'https://i.imgur.com/vhQAnad.png',
+  'Stream-Fusion':'https://i.imgur.com/jOzd3Oi.png',
+  'COMET':        'https://i.imgur.com/jmVoVMu.jpeg',
 };
 
 const DEFAULT_POSTER = 'https://i.imgur.com/8yPVxJJ.png';
@@ -51,7 +51,9 @@ builder.defineCatalogHandler(async ({ type, id, extra }) => {
     const metas = [];
 
     for (const group of groups) {
-      const posterKey = Object.keys(GROUP_POSTERS).find(k => group.name.includes(k));
+      // Nettoyer le nom du groupe (retirer \n et espaces)
+      const cleanName = group.name.replace(/\n/g, '').trim();
+      const posterKey = Object.keys(GROUP_POSTERS).find(k => cleanName.includes(k));
       const groupPoster = GROUP_POSTERS[posterKey] || DEFAULT_POSTER;
 
       for (const monitor of group.monitorList) {
@@ -59,15 +61,15 @@ builder.defineCatalogHandler(async ({ type, id, extra }) => {
         const lastHeartbeat = monitorHeartbeats[monitorHeartbeats.length - 1];
         const isUp = lastHeartbeat ? lastHeartbeat.status === 1 : false;
 
-        if (extra?.genre && extra.genre !== group.name) continue;
+        if (extra?.genre && extra.genre !== cleanName) continue;
 
         metas.push({
           id: `status-${monitor.id}`,
           type: 'other',
           name: `${isUp ? '✅' : '❌'} ${monitor.name}`,
           poster: groupPoster,
-          description: `Groupe: ${group.name}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}`,
-          genres: [group.name],
+          description: `Groupe: ${cleanName}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}`,
+          genres: [cleanName],
         });
       }
     }
