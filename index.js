@@ -9,16 +9,19 @@ const manifest = {
     name: '📡 Stremio FR - Statut Des Addons',
     description: 'Statut en temps réel des addons et instances Stremio FR',
     catalogs: [
-    {
-        type: 'other',
-        id: 'stremio-status',
-        name: '📡 Statut des Addons',
-        extra: [
-            { name: 'genre', isRequired: false }
-        ],
-        extraSupported: ['genre']
-    }
-],
+        {
+            type: 'other',
+            id: 'stremio-status',
+            name: '📡 Statut des Addons',
+            extra: [
+                { name: 'genre', isRequired: false }
+            ],
+            extraSupported: ['genre']
+        }
+    ],
+    resources: ['catalog'],
+    types: ['other'],
+};
 
 const builder = new addonBuilder(manifest);
 
@@ -43,7 +46,6 @@ builder.defineCatalogHandler(async ({ type, id, extra }) => {
         const lastHeartbeat = monitorHeartbeats[monitorHeartbeats.length - 1];
         const isUp = lastHeartbeat ? lastHeartbeat.status === 1 : false;
 
-        // Filtre par genre si sélectionné
         if (extra?.genre && extra.genre !== group.name) continue;
 
         metas.push({
