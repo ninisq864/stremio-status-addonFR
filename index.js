@@ -32,7 +32,7 @@ builder.defineCatalogHandler(async ({ type, id }) => {
 
         for (const group of groups) {
             for (const monitor of group.monitorList) {
-                const isUp = monitor.active === true;
+                const isUp = monitor.status === 1;
                 metas.push({
                     id: `status-${monitor.id}`,
                     type: 'other',
