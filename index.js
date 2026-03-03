@@ -8,7 +8,6 @@ const manifest = {
     version: '1.0.0',
     name: '📡 Stremio FR - Statut Des Addons',
     description: 'Statut en temps réel des addons et instances Stremio FR',
-    logo: 'https://i.imgur.com/your-logo.png',
     catalogs: [
         {
             type: 'other',
@@ -24,22 +23,22 @@ const builder = new addonBuilder(manifest);
 
 builder.defineCatalogHandler(async ({ type, id }) => {
     try {
-        const response = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/stremio-addons`);
-        const monitors = response.data.publicGroupList || [];
+        const response = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/stremio-addons`, {
+            headers: { 'Accept': 'application/json' }
+        });
 
+        const groups = response.data.publicGroupList || [];
         const metas = [];
 
-        for (const group of monitors) {
+        for (const group of groups) {
             for (const monitor of group.monitorList) {
-                const isUp = monitor.status === 1;
+                const isUp = monitor.active === true;
                 metas.push({
                     id: `status-${monitor.id}`,
                     type: 'other',
-                    name: monitor.name,
-                    poster: isUp
-                        ? 'https://i.imgur.com/green-status.png'
-                        : 'https://i.imgur.com/red-status.png',
-                    description: isUp ? '✅ En ligne' : '❌ Hors ligne',
+                    name: `${isUp ? '✅' : '❌'} ${monitor.name}`,
+                    poster: 'https://i.imgur.com/8yPYxJJ.png',
+                    description: `Groupe: ${group.name}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}`,
                     genres: [group.name],
                 });
             }
@@ -47,6 +46,7 @@ builder.defineCatalogHandler(async ({ type, id }) => {
 
         return { metas };
     } catch (e) {
+        console.error('Erreur API:', e.message);
         return { metas: [] };
     }
 });
