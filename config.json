@@ -1,0 +1,13 @@
+{
+  "groupPosters": {
+    "AIOStreams": "https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png",
+    "AIOMetadata": "https://aiometadata.elfhosted.com/logo.png",
+    "StremThru": "https://i.imgur.com/vhQAnad.png",
+    "Stream-Fusion": "https://i.imgur.com/jOzd3Oi.png",
+    "COMET": "https://i.imgur.com/jmVoVMu.jpeg"
+  },
+  "hiddenMonitors": [],
+  "customNames": {},
+  "customLinks": {},
+  "defaultPoster": "https://i.imgur.com/8yPVxJJ.png"
+}
