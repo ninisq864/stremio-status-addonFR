@@ -257,7 +257,7 @@ app.get('/configure', (req, res) => res.sendFile(path.join(__dirname, 'configure
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
 // Login sécurisé
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const ip = req.ip;
   const { password } = req.body;
 
