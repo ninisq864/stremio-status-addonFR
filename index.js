@@ -150,9 +150,26 @@ app.post('/api/config', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/change-password', authMiddleware, (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Mot de passe requis' });
+  process.env.ADMIN_PASSWORD = password;
+  res.json({ ok: true });
+});
+
 app.post('/api/cache/refresh', authMiddleware, (req, res) => {
   cache = { data: null, ts: 0 };
   res.json({ ok: true, message: 'Cache vidé' });
+});
+
+// Webhook public pour Uptime Kuma (avec clé secrète)
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'stremiofr-webhook';
+app.post('/webhook/refresh', (req, res) => {
+  const secret = req.headers['x-webhook-secret'] || req.query.secret;
+  if (secret !== WEBHOOK_SECRET) return res.status(401).json({ error: 'Non autorisé' });
+  cache = { data: null, ts: 0 };
+  console.log('🔔 Cache vidé via webhook');
+  res.json({ ok: true, message: 'Cache vidé via webhook' });
 });
 
 app.use(router);

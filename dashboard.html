@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Admin — StremioFR</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root {
+    :root[data-theme="dark"] {
       --bg: #080a0f;
       --surface: #0e1118;
       --surface2: #141820;
@@ -15,10 +15,27 @@
       --accent-dim: rgba(249,115,22,0.12);
       --green: #22c55e;
       --red: #ef4444;
-      --blue: #3b82f6;
       --text: #e2e8f0;
+      --text2: #94a3b8;
       --muted: #4b5563;
-      --mono: 'JetBrains Mono', monospace;
+      --input-bg: #080a0f;
+      --card-hover: rgba(255,255,255,0.02);
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface2: #f8fafc;
+      --border: rgba(0,0,0,0.08);
+      --accent: #f97316;
+      --accent-dim: rgba(249,115,22,0.1);
+      --green: #16a34a;
+      --red: #dc2626;
+      --text: #0f172a;
+      --text2: #475569;
+      --muted: #94a3b8;
+      --input-bg: #f8fafc;
+      --card-hover: rgba(0,0,0,0.02);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,8 +43,9 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--mono);
+      font-family: 'Outfit', sans-serif;
       min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
     }
 
     /* LOGIN */
@@ -36,7 +54,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(ellipse at 50% 50%, rgba(249,115,22,0.04) 0%, transparent 70%);
     }
 
     .login-card {
@@ -45,90 +62,51 @@
       border-radius: 16px;
       padding: 40px;
       width: 360px;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.3);
     }
 
-    .login-logo {
-      text-align: center;
-      font-size: 40px;
-      margin-bottom: 8px;
-    }
+    .login-logo { text-align: center; font-size: 40px; margin-bottom: 8px; }
+    .login-title { font-size: 20px; font-weight: 800; text-align: center; color: var(--text); margin-bottom: 4px; }
+    .login-sub { font-size: 11px; color: var(--muted); text-align: center; margin-bottom: 28px; letter-spacing: 0.5px; text-transform: uppercase; }
 
-    .login-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 20px;
-      font-weight: 800;
-      text-align: center;
-      color: #fff;
-      margin-bottom: 4px;
-    }
-
-    .login-sub {
-      font-size: 11px;
-      color: var(--muted);
-      text-align: center;
-      margin-bottom: 28px;
-      letter-spacing: 0.5px;
-    }
-
-    .field label {
-      display: block;
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
+    .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 600; }
     .field input {
       width: 100%;
-      background: var(--bg);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--input-bg);
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 11px 14px;
       color: var(--text);
-      font-family: var(--mono);
+      font-family: 'Space Mono', monospace;
       font-size: 13px;
       transition: border-color 0.2s;
       margin-bottom: 16px;
     }
+    .field input:focus { outline: none; border-color: var(--accent); }
 
-    .field input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
+    .login-error { font-size: 12px; color: var(--red); text-align: center; margin-bottom: 12px; display: none; }
 
-    .login-error {
-      font-size: 12px;
-      color: var(--red);
-      text-align: center;
-      margin-bottom: 12px;
-      display: none;
-    }
-
-    .btn-login {
+    .btn-primary {
       width: 100%;
       background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 8px;
       padding: 12px;
-      font-family: 'Syne', sans-serif;
+      font-family: 'Outfit', sans-serif;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       transition: background 0.2s;
     }
-    .btn-login:hover { background: #ea6c0d; }
+    .btn-primary:hover { background: #ea6c0d; }
 
-    /* DASHBOARD */
-    #dashboard { display: none; min-height: 100vh; }
-
-    /* Sidebar */
+    /* LAYOUT */
+    #dashboard { display: none; }
     .layout { display: flex; min-height: 100vh; }
 
     .sidebar {
-      width: 220px;
+      width: 230px;
       background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex;
@@ -136,50 +114,58 @@
       position: fixed;
       top: 0; bottom: 0; left: 0;
       z-index: 10;
+      transition: background 0.3s;
     }
 
     .sidebar-logo {
-      padding: 24px 20px 20px;
+      padding: 20px 18px;
       border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .sidebar-logo-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 15px;
-      font-weight: 800;
-      color: #fff;
-    }
+    .sidebar-logo-text .title { font-size: 15px; font-weight: 800; color: var(--text); }
+    .sidebar-logo-text .sub { font-size: 10px; color: var(--muted); margin-top: 1px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    .sidebar-logo-sub {
+    .theme-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .theme-btn:hover { border-color: var(--accent); }
+
+    .sidebar-nav { flex: 1; padding: 10px 10px; }
+
+    .nav-section-label {
       font-size: 10px;
       color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 12px 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 8px 10px 4px;
+      font-weight: 700;
     }
 
     .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display: flex; align-items: center; gap: 9px;
       padding: 9px 12px;
       border-radius: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text2);
       cursor: pointer;
       transition: all 0.15s;
       margin-bottom: 2px;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
-      font-family: var(--mono);
+      border: none; background: none;
+      width: 100%; text-align: left;
+      font-family: 'Outfit', sans-serif;
     }
-
     .nav-item:hover { background: var(--surface2); color: var(--text); }
     .nav-item.active { background: var(--accent-dim); color: var(--accent); }
 
@@ -188,100 +174,73 @@
       border-top: 1px solid var(--border);
     }
 
-    .cache-indicator {
+    .cache-box {
       background: var(--surface2);
       border-radius: 8px;
       padding: 10px 12px;
       margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+    .cache-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .cache-age { font-size: 13px; color: var(--green); font-family: 'Space Mono', monospace; font-weight: 700; }
 
-    .cache-label {
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-
-    .cache-age {
-      font-size: 13px;
-      color: var(--green);
-      font-weight: 500;
-    }
-
-    .btn-refresh {
+    .btn-sm {
       width: 100%;
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 8px;
-      font-size: 11px;
+      font-size: 12px;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      transition: all 0.2s;
+      margin-bottom: 6px;
+    }
+    .btn-sm:hover { color: var(--accent); border-color: var(--accent); }
+
+    .btn-logout {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 12px;
       color: var(--muted);
       cursor: pointer;
-      font-family: var(--mono);
+      font-family: 'Outfit', sans-serif;
       transition: all 0.2s;
     }
-    .btn-refresh:hover { color: var(--accent); border-color: var(--accent); }
+    .btn-logout:hover { color: var(--red); border-color: var(--red); }
 
-    /* Main content */
-    .main-content {
-      margin-left: 220px;
-      flex: 1;
-      padding: 32px;
-    }
-
+    /* MAIN */
+    .main { margin-left: 230px; padding: 28px 32px 60px; }
     .page { display: none; }
     .page.active { display: block; }
 
-    .page-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 22px;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 4px;
-    }
+    .page-header { margin-bottom: 24px; }
+    .page-title { font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+    .page-sub { font-size: 13px; color: var(--text2); }
 
-    .page-sub {
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 28px;
-    }
-
-    /* Stats grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      margin-bottom: 28px;
-    }
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
 
     .stat-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 18px;
+      padding: 18px 20px;
     }
-
-    .stat-label {
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-
-    .stat-value {
-      font-family: 'Syne', sans-serif;
-      font-size: 28px;
-      font-weight: 800;
-      color: #fff;
-    }
-
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 10px; }
+    .stat-value { font-size: 32px; font-weight: 800; color: var(--text); }
     .stat-value.green { color: var(--green); }
     .stat-value.red { color: var(--red); }
     .stat-value.orange { color: var(--accent); }
 
-    /* Groups table */
+    /* CARD */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -291,93 +250,102 @@
     }
 
     .card-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
       border-bottom: 1px solid var(--border);
     }
+    .card-title { font-size: 14px; font-weight: 700; color: var(--text); }
 
-    .card-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 14px;
+    .btn-add {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(249,115,22,0.2);
+      color: var(--accent);
+      border-radius: 7px;
+      padding: 6px 12px;
+      font-size: 12px;
       font-weight: 700;
-      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
     }
+    .btn-add:hover { background: var(--accent); color: #fff; }
 
-    .card-body { padding: 0; }
-
-    .monitor-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+    /* ROWS */
+    .row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 18px;
+      border-bottom: 1px solid var(--border);
       transition: background 0.1s;
     }
+    .row:last-child { border-bottom: none; }
+    .row:hover { background: var(--card-hover); }
 
-    .monitor-row:last-child { border-bottom: none; }
-    .monitor-row:hover { background: rgba(255,255,255,0.02); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.up { background: var(--green); box-shadow: 0 0 5px rgba(34,197,94,0.5); }
+    .dot.down { background: var(--red); box-shadow: 0 0 5px rgba(239,68,68,0.5); }
 
-    .monitor-name {
-      flex: 1;
-      font-size: 13px;
-      font-weight: 500;
+    .row-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
+    .row-group { font-size: 11px; color: var(--muted); background: var(--surface2); padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+
+    .uptime-badge {
+      font-size: 12px; font-weight: 700;
+      font-family: 'Space Mono', monospace;
+      min-width: 52px; text-align: right;
+    }
+
+    /* Inline edit */
+    .inline-input {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
       color: var(--text);
-    }
-
-    .monitor-group {
-      font-size: 11px;
-      color: var(--muted);
-      background: var(--surface2);
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-
-    .monitor-uptime {
+      font-family: 'Outfit', sans-serif;
       font-size: 12px;
       font-weight: 600;
-      min-width: 48px;
-      text-align: right;
+      transition: border-color 0.2s;
+      width: 160px;
     }
+    .inline-input:focus { outline: none; border-color: var(--accent); }
 
-    .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
+    .link-input {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      color: var(--text2);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      transition: border-color 0.2s;
+      width: 200px;
     }
-    .dot.up { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.5); }
-    .dot.down { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+    .link-input:focus { outline: none; border-color: var(--accent); }
 
-    .toggle-btn {
+    .action-btn {
       background: none;
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 4px 10px;
+      padding: 5px 10px;
       font-size: 11px;
-      font-family: var(--mono);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.15s;
-      color: var(--muted);
+      color: var(--text2);
+      white-space: nowrap;
     }
-    .toggle-btn:hover { border-color: var(--red); color: var(--red); }
-    .toggle-btn.hidden-btn { border-color: var(--green); color: var(--green); }
-    .toggle-btn.hidden-btn:hover { background: rgba(34,197,94,0.1); }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .action-btn.danger:hover { border-color: var(--red); color: var(--red); }
+    .action-btn.success { border-color: var(--green); color: var(--green); }
 
-    /* Logos editor */
-    .logos-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-
+    /* LOGOS */
     .logo-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
     }
+    .logo-row:last-child { border-bottom: none; }
 
     .logo-preview {
       width: 36px; height: 36px;
@@ -385,69 +353,136 @@
       object-fit: contain;
       background: var(--surface2);
       border: 1px solid var(--border);
+      flex-shrink: 0;
     }
-
-    .logo-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      min-width: 120px;
-    }
-
-    .logo-input {
+    .logo-name { font-size: 13px; font-weight: 700; color: var(--text); min-width: 120px; }
+    .logo-url-input {
       flex: 1;
-      background: var(--bg);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--input-bg);
+      border: 1px solid var(--border);
       border-radius: 6px;
       padding: 8px 12px;
       color: var(--text);
-      font-family: var(--mono);
+      font-family: 'Space Mono', monospace;
       font-size: 11px;
       transition: border-color 0.2s;
     }
+    .logo-url-input:focus { outline: none; border-color: var(--accent); }
 
-    .logo-input:focus { outline: none; border-color: var(--accent); }
+    /* SETTINGS */
+    .settings-grid { display: flex; flex-direction: column; gap: 16px; }
 
-    .btn-save-logo {
-      background: var(--accent-dim);
-      border: 1px solid rgba(249,115,22,0.2);
-      color: var(--accent);
-      border-radius: 6px;
-      padding: 7px 14px;
-      font-size: 11px;
-      font-family: var(--mono);
+    .setting-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .setting-info .setting-label { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .setting-info .setting-desc { font-size: 12px; color: var(--text2); }
+
+    .setting-control { display: flex; align-items: center; gap: 10px; }
+
+    .setting-input {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 14px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      width: 200px;
+      transition: border-color 0.2s;
+    }
+    .setting-input:focus { outline: none; border-color: var(--accent); }
+
+    .btn-save {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: background 0.2s;
       white-space: nowrap;
     }
-    .btn-save-logo:hover { background: var(--accent); color: #fff; }
+    .btn-save:hover { background: #ea6c0d; }
 
-    /* Toast */
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      width: 440px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+    .modal-title { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 20px; }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label { display: block; font-size: 12px; color: var(--text2); font-weight: 600; margin-bottom: 5px; }
+    .modal-field input {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      transition: border-color 0.2s;
+    }
+    .modal-field input:focus { outline: none; border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .btn-cancel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* TOAST */
     .toast {
-      position: fixed;
-      bottom: 24px; right: 24px;
+      position: fixed; bottom: 24px; right: 24px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 12px 18px;
-      font-size: 12px;
+      font-size: 13px;
+      font-weight: 600;
       color: var(--text);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
       opacity: 0;
       transform: translateY(10px);
       transition: all 0.3s;
-      z-index: 100;
+      z-index: 200;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
 
-    .pulse {
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
   </style>
 </head>
 <body>
@@ -457,13 +492,13 @@
   <div class="login-card">
     <div class="login-logo">🔧</div>
     <div class="login-title">Dashboard Admin</div>
-    <div class="login-sub">STREMIOFR STATUS ADDON</div>
+    <div class="login-sub">StremioFR Status Addon</div>
     <div class="field">
       <label>Mot de passe</label>
-      <input type="password" id="pwd-input" placeholder="••••••••••" onkeydown="if(event.key==='Enter')login()">
+      <input type="password" id="pwd-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
     </div>
     <div class="login-error" id="login-error">❌ Mot de passe incorrect</div>
-    <button class="btn-login" onclick="login()">Accéder au dashboard →</button>
+    <button class="btn-primary" onclick="login()">Accéder →</button>
   </div>
 </div>
 
@@ -474,76 +509,129 @@
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-logo">
-        <div class="sidebar-logo-title">📡 StremioFR</div>
-        <div class="sidebar-logo-sub">ADMIN DASHBOARD</div>
-      </div>
-      <div class="sidebar-nav">
-        <button class="nav-item active" onclick="showPage('stats', this)">📊 Statistiques</button>
-        <button class="nav-item" onclick="showPage('monitors', this)">🖥️ Instances</button>
-        <button class="nav-item" onclick="showPage('logos', this)">🖼️ Logos</button>
-      </div>
-      <div class="sidebar-bottom">
-        <div class="cache-indicator">
-          <div class="cache-label">Cache</div>
-          <div class="cache-age" id="cache-age">— s</div>
+        <div class="sidebar-logo-text">
+          <div class="title">📡 StremioFR</div>
+          <div class="sub">Admin Dashboard</div>
         </div>
-        <button class="btn-refresh" onclick="refreshCache()">⚡ Vider le cache</button>
+        <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
+      </div>
+
+      <div class="sidebar-nav">
+        <div class="nav-section-label">Général</div>
+        <button class="nav-item active" onclick="showPage('stats', this)">📊 Statistiques</button>
+        <button class="nav-item" onclick="showPage('instances', this)">🖥️ Instances</button>
+        <div class="nav-section-label">Personnalisation</div>
+        <button class="nav-item" onclick="showPage('logos', this)">🖼️ Logos</button>
+        <button class="nav-item" onclick="showPage('settings', this)">⚙️ Paramètres</button>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="cache-box">
+          <span class="cache-label">⚡ Cache</span>
+          <span class="cache-age" id="cache-age">—s</span>
+        </div>
+        <button class="btn-sm" onclick="refreshCache()">🔄 Vider le cache</button>
+        <button class="btn-logout" onclick="logout()">Se déconnecter</button>
       </div>
     </div>
 
     <!-- Content -->
-    <div class="main-content">
+    <div class="main">
 
       <!-- STATS -->
       <div class="page active" id="page-stats">
-        <div class="page-title">Statistiques</div>
-        <div class="page-sub">Vue globale en temps réel — mise à jour toutes les 30s</div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total instances</div>
-            <div class="stat-value orange" id="stat-total">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">En ligne</div>
-            <div class="stat-value green" id="stat-up">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Hors ligne</div>
-            <div class="stat-value red" id="stat-down">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Uptime moyen</div>
-            <div class="stat-value" id="stat-uptime">—</div>
-          </div>
+        <div class="page-header">
+          <div class="page-title">Statistiques</div>
+          <div class="page-sub">Vue globale en temps réel — rafraîchissement toutes les 30s</div>
         </div>
-
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Total instances</div><div class="stat-value orange" id="stat-total">—</div></div>
+          <div class="stat-card"><div class="stat-label">En ligne</div><div class="stat-value green" id="stat-up">—</div></div>
+          <div class="stat-card"><div class="stat-label">Hors ligne</div><div class="stat-value red" id="stat-down">—</div></div>
+          <div class="stat-card"><div class="stat-label">Uptime moyen</div><div class="stat-value" id="stat-uptime">—</div></div>
+        </div>
         <div class="card">
-          <div class="card-head">
-            <span class="card-title">Toutes les instances <span class="pulse" style="color:var(--green);margin-left:6px">●</span></span>
-          </div>
-          <div class="card-body" id="stats-list"></div>
+          <div class="card-head"><span class="card-title">Toutes les instances <span class="pulse" style="color:var(--green)">●</span></span></div>
+          <div id="stats-list"></div>
         </div>
       </div>
 
-      <!-- MONITORS -->
-      <div class="page" id="page-monitors">
-        <div class="page-title">Gestion des instances</div>
-        <div class="page-sub">Masquez les instances que vous ne voulez pas afficher dans Stremio</div>
-        <div class="card">
-          <div class="card-body" id="monitors-list"></div>
+      <!-- INSTANCES -->
+      <div class="page" id="page-instances">
+        <div class="page-header">
+          <div class="page-title">Gestion des instances</div>
+          <div class="page-sub">Modifiez les noms, liens, masquez ou supprimez des instances</div>
         </div>
+        <div id="instances-by-group"></div>
       </div>
 
       <!-- LOGOS -->
       <div class="page" id="page-logos">
-        <div class="page-title">Logos par groupe</div>
-        <div class="page-sub">Modifiez les URLs des logos affichés dans Stremio</div>
+        <div class="page-header">
+          <div class="page-title">Logos des groupes</div>
+          <div class="page-sub">Modifiez les URLs des logos affichés dans Stremio</div>
+        </div>
         <div class="card">
-          <div class="logos-grid" id="logos-list"></div>
+          <div class="card-head">
+            <span class="card-title">Logos par groupe</span>
+            <button class="btn-add" onclick="openAddLogoModal()">+ Ajouter un groupe</button>
+          </div>
+          <div id="logos-list"></div>
         </div>
       </div>
 
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="page-header">
+          <div class="page-title">Paramètres</div>
+          <div class="page-sub">Configuration générale de l'addon</div>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-label">TTL du cache</div>
+              <div class="setting-desc">Durée en secondes avant rafraîchissement des données</div>
+            </div>
+            <div class="setting-control">
+              <input type="number" class="setting-input" id="setting-ttl" value="60" min="10" max="3600">
+              <button class="btn-save" onclick="saveTTL()">Sauvegarder</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-label">Mot de passe admin</div>
+              <div class="setting-desc">Modifiez le mot de passe d'accès au dashboard</div>
+            </div>
+            <div class="setting-control">
+              <input type="password" class="setting-input" id="setting-pwd" placeholder="Nouveau mot de passe">
+              <button class="btn-save" onclick="savePassword()">Changer</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-label">Lien d'installation</div>
+              <div class="setting-desc">Copiez le lien manifest pour partager l'addon</div>
+            </div>
+            <div class="setting-control">
+              <button class="btn-save" onclick="copyManifest()">📋 Copier le lien</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ajout groupe logo -->
+<div class="modal-overlay" id="modal-logo">
+  <div class="modal">
+    <div class="modal-title">➕ Ajouter un groupe</div>
+    <div class="modal-field"><label>Nom du groupe</label><input type="text" id="new-logo-name" placeholder="ex: MonAddon"></div>
+    <div class="modal-field"><label>URL du logo</label><input type="text" id="new-logo-url" placeholder="https://..."></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-logo')">Annuler</button>
+      <button class="btn-save" onclick="addLogoGroup()">Ajouter</button>
     </div>
   </div>
 </div>
@@ -554,8 +642,9 @@
   let token = '';
   let allData = null;
   let currentConfig = null;
+  let isDark = true;
 
-  // ─── AUTH ──────────────────────────────────────────────────────────────────
+  // ── AUTH ──────────────────────────────────────────────────────────────────
   async function login() {
     const pwd = document.getElementById('pwd-input').value;
     const res = await fetch('/api/login', {
@@ -564,8 +653,8 @@
       body: JSON.stringify({ password: pwd })
     });
     if (res.ok) {
-      const data = await res.json();
-      token = data.token;
+      const d = await res.json();
+      token = d.token;
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
       init();
@@ -574,7 +663,14 @@
     }
   }
 
-  // ─── INIT ──────────────────────────────────────────────────────────────────
+  function logout() {
+    token = '';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('pwd-input').value = '';
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────────────────
   async function init() {
     await Promise.all([loadData(), loadConfig()]);
     setInterval(loadData, 30000);
@@ -585,7 +681,7 @@
     const res = await fetch('/api/data');
     allData = await res.json();
     renderStats();
-    renderMonitors();
+    renderInstances();
     updateCacheAge();
   }
 
@@ -593,6 +689,7 @@
     const res = await fetch('/api/config', { headers: { 'x-admin-token': token } });
     currentConfig = await res.json();
     renderLogos();
+    if (currentConfig.cacheTTL) document.getElementById('setting-ttl').value = currentConfig.cacheTTL / 1000;
   }
 
   function updateCacheAge() {
@@ -600,7 +697,7 @@
     document.getElementById('cache-age').textContent = `${allData.cacheAge}s`;
   }
 
-  // ─── STATS ─────────────────────────────────────────────────────────────────
+  // ── STATS ─────────────────────────────────────────────────────────────────
   function calcUptime(hbs) {
     if (!hbs.length) return 0;
     return Math.round(hbs.filter(h => h.status === 1).length / hbs.length * 10000) / 100;
@@ -609,8 +706,7 @@
   function renderStats() {
     if (!allData) return;
     const { groups, heartbeats } = allData;
-    let total = 0, up = 0, uptimes = [];
-    let html = '';
+    let total = 0, up = 0, uptimes = [], html = '';
 
     groups.forEach(group => {
       const name = group.name.replace(/\n/g,'').trim();
@@ -619,92 +715,114 @@
         const last = hbs.slice(-1)[0];
         const isUp = last && last.status === 1;
         const uptime = calcUptime(hbs);
-        total++;
-        if (isUp) up++;
-        uptimes.push(uptime);
-
-        html += `
-        <div class="monitor-row">
-          <div class="dot ${isUp ? 'up' : 'down'}"></div>
-          <div class="monitor-name">${m.name}</div>
-          <div class="monitor-group">${name}</div>
-          <div class="monitor-uptime" style="color:${uptime>=99?'#22c55e':uptime>=95?'#f59e0b':'#ef4444'}">${uptime}%</div>
+        total++; if (isUp) up++; uptimes.push(uptime);
+        html += `<div class="row">
+          <div class="dot ${isUp?'up':'down'}"></div>
+          <div class="row-name">${m.name}</div>
+          <div class="row-group">${name}</div>
+          <div class="uptime-badge" style="color:${uptime>=99?'var(--green)':uptime>=95?'#f59e0b':'var(--red)'}">${uptime}%</div>
         </div>`;
       });
     });
 
-    const avgUptime = uptimes.length ? Math.round(uptimes.reduce((a,b) => a+b, 0) / uptimes.length * 100) / 100 : 0;
-
+    const avg = uptimes.length ? Math.round(uptimes.reduce((a,b)=>a+b,0)/uptimes.length*100)/100 : 0;
     document.getElementById('stat-total').textContent = total;
     document.getElementById('stat-up').textContent = up;
     document.getElementById('stat-down').textContent = total - up;
-    document.getElementById('stat-uptime').textContent = `${avgUptime}%`;
-    document.getElementById('stat-uptime').style.color = avgUptime >= 99 ? '#22c55e' : avgUptime >= 95 ? '#f59e0b' : '#ef4444';
+    document.getElementById('stat-uptime').textContent = `${avg}%`;
+    document.getElementById('stat-uptime').style.color = avg>=99?'var(--green)':avg>=95?'#f59e0b':'var(--red)';
     document.getElementById('stats-list').innerHTML = html;
   }
 
-  // ─── MONITORS ──────────────────────────────────────────────────────────────
-  function renderMonitors() {
+  // ── INSTANCES ─────────────────────────────────────────────────────────────
+  function renderInstances() {
     if (!allData || !currentConfig) return;
     const { groups, heartbeats } = allData;
     const hidden = currentConfig.hiddenMonitors || [];
+    const customNames = currentConfig.customNames || {};
+    const customLinks = currentConfig.customLinks || {};
     let html = '';
 
     groups.forEach(group => {
       const name = group.name.replace(/\n/g,'').trim();
+      const upCount = group.monitorList.filter(m => {
+        const last = (heartbeats[m.id]||[]).slice(-1)[0];
+        return last && last.status === 1;
+      }).length;
+
+      html += `<div class="card" style="margin-bottom:16px">
+        <div class="card-head">
+          <span class="card-title">${name} <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span></span>
+        </div>`;
+
       group.monitorList.forEach(m => {
         const hbs = heartbeats[m.id] || [];
         const last = hbs.slice(-1)[0];
         const isUp = last && last.status === 1;
         const isHidden = hidden.includes(m.id);
-        html += `
-        <div class="monitor-row">
-          <div class="dot ${isUp ? 'up' : 'down'}"></div>
-          <div class="monitor-name">${m.name}</div>
-          <div class="monitor-group">${name}</div>
-          <button class="toggle-btn ${isHidden ? 'hidden-btn' : ''}" onclick="toggleMonitor(${m.id}, this)">
-            ${isHidden ? '👁️ Afficher' : '🚫 Masquer'}
+        const displayName = customNames[m.id] || m.name;
+        const link = customLinks[m.id] || '';
+
+        html += `<div class="row" id="row-${m.id}" style="${isHidden?'opacity:0.4':''}">
+          <div class="dot ${isUp?'up':'down'}"></div>
+          <input class="inline-input" value="${displayName}" id="name-${m.id}" placeholder="Nom affiché">
+          <input class="link-input" value="${link}" id="link-${m.id}" placeholder="https://... (lien optionnel)">
+          <button class="action-btn" onclick="saveInstance(${m.id})">💾 Sauv.</button>
+          <button class="action-btn ${isHidden?'success':''}" onclick="toggleHide(${m.id}, this)">
+            ${isHidden?'👁️ Afficher':'🚫 Masquer'}
           </button>
         </div>`;
       });
+
+      html += `</div>`;
     });
 
-    document.getElementById('monitors-list').innerHTML = html;
+    document.getElementById('instances-by-group').innerHTML = html;
   }
 
-  async function toggleMonitor(id, btn) {
+  async function saveInstance(id) {
+    const name = document.getElementById(`name-${id}`).value.trim();
+    const link = document.getElementById(`link-${id}`).value.trim();
     const cfg = { ...currentConfig };
-    const idx = cfg.hiddenMonitors.indexOf(id);
-    if (idx === -1) cfg.hiddenMonitors.push(id);
-    else cfg.hiddenMonitors.splice(idx, 1);
-
+    if (!cfg.customNames) cfg.customNames = {};
+    if (!cfg.customLinks) cfg.customLinks = {};
+    cfg.customNames[id] = name;
+    cfg.customLinks[id] = link;
     await saveConfig(cfg);
     currentConfig = cfg;
-    renderMonitors();
+    toast('✅ Instance mise à jour !');
+  }
+
+  async function toggleHide(id, btn) {
+    const cfg = { ...currentConfig };
+    if (!cfg.hiddenMonitors) cfg.hiddenMonitors = [];
+    const idx = cfg.hiddenMonitors.indexOf(id);
+    if (idx === -1) { cfg.hiddenMonitors.push(id); btn.textContent = '👁️ Afficher'; btn.classList.add('success'); document.getElementById(`row-${id}`).style.opacity = '0.4'; }
+    else { cfg.hiddenMonitors.splice(idx,1); btn.textContent = '🚫 Masquer'; btn.classList.remove('success'); document.getElementById(`row-${id}`).style.opacity = '1'; }
+    await saveConfig(cfg);
+    currentConfig = cfg;
     toast(idx === -1 ? '🚫 Instance masquée' : '👁️ Instance affichée');
   }
 
-  // ─── LOGOS ─────────────────────────────────────────────────────────────────
+  // ── LOGOS ─────────────────────────────────────────────────────────────────
   function renderLogos() {
     if (!currentConfig) return;
     const { groupPosters } = currentConfig;
     let html = '';
-
     Object.entries(groupPosters).forEach(([group, url]) => {
-      html += `
-      <div class="logo-row">
-        <img class="logo-preview" src="${url}" onerror="this.src=''" id="preview-${group}">
+      html += `<div class="logo-row">
+        <img class="logo-preview" src="${url}" id="preview-${group}" onerror="this.src=''">
         <div class="logo-name">${group}</div>
-        <input class="logo-input" type="text" value="${url}" id="logo-input-${group}" placeholder="https://...">
-        <button class="btn-save-logo" onclick="saveLogo('${group}')">Sauvegarder</button>
+        <input class="logo-url-input" type="text" value="${url}" id="logo-${group}" placeholder="https://...">
+        <button class="action-btn" onclick="saveLogo('${group}')">💾 Sauv.</button>
+        <button class="action-btn danger" onclick="deleteLogo('${group}')">🗑️</button>
       </div>`;
     });
-
     document.getElementById('logos-list').innerHTML = html;
   }
 
   async function saveLogo(group) {
-    const url = document.getElementById(`logo-input-${group}`).value.trim();
+    const url = document.getElementById(`logo-${group}`).value.trim();
     const cfg = { ...currentConfig };
     cfg.groupPosters[group] = url;
     await saveConfig(cfg);
@@ -713,17 +831,75 @@
     toast(`✅ Logo "${group}" mis à jour`);
   }
 
-  // ─── CACHE ─────────────────────────────────────────────────────────────────
-  async function refreshCache() {
-    await fetch('/api/cache/refresh', {
-      method: 'POST',
-      headers: { 'x-admin-token': token }
-    });
-    await loadData();
-    toast('⚡ Cache vidé et rechargé !');
+  async function deleteLogo(group) {
+    if (!confirm(`Supprimer le logo de "${group}" ?`)) return;
+    const cfg = { ...currentConfig };
+    delete cfg.groupPosters[group];
+    await saveConfig(cfg);
+    currentConfig = cfg;
+    renderLogos();
+    toast(`🗑️ Logo "${group}" supprimé`);
   }
 
-  // ─── UTILS ─────────────────────────────────────────────────────────────────
+  function openAddLogoModal() { document.getElementById('modal-logo').classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  async function addLogoGroup() {
+    const name = document.getElementById('new-logo-name').value.trim();
+    const url = document.getElementById('new-logo-url').value.trim();
+    if (!name || !url) { toast('❌ Remplissez tous les champs'); return; }
+    const cfg = { ...currentConfig };
+    cfg.groupPosters[name] = url;
+    await saveConfig(cfg);
+    currentConfig = cfg;
+    renderLogos();
+    closeModal('modal-logo');
+    document.getElementById('new-logo-name').value = '';
+    document.getElementById('new-logo-url').value = '';
+    toast(`✅ Groupe "${name}" ajouté`);
+  }
+
+  // ── SETTINGS ──────────────────────────────────────────────────────────────
+  async function saveTTL() {
+    const ttl = parseInt(document.getElementById('setting-ttl').value) * 1000;
+    const cfg = { ...currentConfig, cacheTTL: ttl };
+    await saveConfig(cfg);
+    currentConfig = cfg;
+    toast('✅ TTL mis à jour — redémarrage nécessaire pour appliquer');
+  }
+
+  async function savePassword() {
+    const pwd = document.getElementById('setting-pwd').value.trim();
+    if (!pwd) { toast('❌ Entrez un nouveau mot de passe'); return; }
+    await fetch('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify({ password: pwd })
+    });
+    toast('✅ Mot de passe changé — reconnectez-vous');
+    setTimeout(logout, 2000);
+  }
+
+  function copyManifest() {
+    navigator.clipboard.writeText(`${window.location.origin}/manifest.json`);
+    toast('📋 Lien copié !');
+  }
+
+  // ── CACHE ─────────────────────────────────────────────────────────────────
+  async function refreshCache() {
+    await fetch('/api/cache/refresh', { method: 'POST', headers: { 'x-admin-token': token } });
+    await loadData();
+    toast('⚡ Cache vidé !');
+  }
+
+  // ── THEME ─────────────────────────────────────────────────────────────────
+  function toggleTheme() {
+    isDark = !isDark;
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    document.getElementById('theme-btn').textContent = isDark ? '🌙' : '☀️';
+  }
+
+  // ── UTILS ─────────────────────────────────────────────────────────────────
   async function saveConfig(cfg) {
     await fetch('/api/config', {
       method: 'POST',
