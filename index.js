@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const cookieParser = require('cookie-parser');
 
 const UPTIME_KUMA_URL = 'https://uptime-kuma-production-7c44.up.railway.app';
 const STATUS_SLUG = 'stremiofr-addons';
@@ -152,8 +153,11 @@ function resetAttempts(ip) {
 
 // ── AUTH MIDDLEWARE ────────────────────────────────────────────────────────────
 function authMiddleware(req, res, next) {
+  // Lire depuis cookie HttpOnly (priorité) ou header Bearer (fallback)
+  const cookieToken = req.cookies?.admin_token;
   const authHeader = req.headers['authorization'];
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.headers['x-admin-token'];
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = cookieToken || bearerToken;
   if (!token) return res.status(401).json({ error: 'Token manquant' });
   const payload = verifyToken(token);
   if (!payload) return res.status(401).json({ error: 'Token invalide ou expiré' });
@@ -229,6 +233,7 @@ const addonInterface = builder.getInterface();
 const router = getRouter(addonInterface);
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 
 // Headers de sécurité
 app.use((req, res, next) => {
@@ -274,7 +279,14 @@ app.post('/api/login', async (req, res) => {
     resetAttempts(ip);
     const token = generateToken({ role: 'admin' });
     console.log(`✅ Connexion admin depuis ${ip}`);
-    res.json({ token, expiresIn: SESSION_DURATION });
+    // Cookie HttpOnly = invisible depuis JavaScript, même avec DevTools
+    res.cookie('admin_token', token, {
+      httpOnly: true,      // Impossible à lire depuis JS
+      secure: process.env.NODE_ENV === 'production', // HTTPS only en prod
+      sameSite: 'strict',  // Protège contre CSRF
+      maxAge: SESSION_DURATION,
+    });
+    res.json({ ok: true, expiresIn: SESSION_DURATION });
   } else {
     recordFailedAttempt(ip);
     const attempts = loginAttempts.get(ip);
@@ -311,6 +323,12 @@ app.post('/api/change-password', authMiddleware, async (req, res) => {
   console.log('🔐 Mot de passe changé');
   console.log(`💡 Nouveau hash à sauvegarder: ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}`);
   res.json({ ok: true, hash: ADMIN_PASSWORD_HASH });
+});
+
+// Logout : efface le cookie côté serveur
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('admin_token', { httpOnly: true, sameSite: 'strict' });
+  res.json({ ok: true });
 });
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'stremiofr-webhook';
