@@ -3,7 +3,7 @@ const axios = require('axios');
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const UPTIME_KUMA_URL = 'https://uptime-kuma-production-7c44.up.railway.app';
 const STATUS_SLUG = 'stremiofr-addons';
