@@ -1,5 +1,8 @@
-const { addonBuilder, serveHTTP } = require('stremio-addon-sdk');
+const { addonBuilder, serveHTTP, getRouter } = require('stremio-addon-sdk');
 const axios = require('axios');
+const path = require('path');
+const fs = require('fs');
+const express = require('express');
 
 const UPTIME_KUMA_URL = 'https://uptime-kuma-production-7c44.up.railway.app';
 
@@ -51,7 +54,6 @@ builder.defineCatalogHandler(async ({ type, id, extra }) => {
     const metas = [];
 
     for (const group of groups) {
-      // Nettoyer le nom du groupe (retirer \n et espaces)
       const cleanName = group.name.replace(/\n/g, '').trim();
       const posterKey = Object.keys(GROUP_POSTERS).find(k => cleanName.includes(k));
       const groupPoster = GROUP_POSTERS[posterKey] || DEFAULT_POSTER;
@@ -68,6 +70,7 @@ builder.defineCatalogHandler(async ({ type, id, extra }) => {
           type: 'other',
           name: `${isUp ? '✅' : '❌'} ${monitor.name}`,
           poster: groupPoster,
+          background: groupPoster,
           description: `Groupe: ${cleanName}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}`,
           genres: [cleanName],
         });
@@ -81,5 +84,27 @@ builder.defineCatalogHandler(async ({ type, id, extra }) => {
   }
 });
 
-serveHTTP(builder.getInterface(), { port: process.env.PORT || 7000 });
-console.log('Addon lancé sur le port 7000');
+// Créer l'app Express avec le router Stremio
+const addonInterface = builder.getInterface();
+const router = getRouter(addonInterface);
+
+const app = express();
+
+// Route /configure → sert le fichier HTML
+app.get('/configure', (req, res) => {
+  res.sendFile(path.join(__dirname, 'configure.html'));
+});
+
+// Route racine → redirige vers /configure
+app.get('/', (req, res) => {
+  res.redirect('/configure');
+});
+
+// Toutes les routes Stremio
+app.use(router);
+
+const PORT = process.env.PORT || 7000;
+app.listen(PORT, () => {
+  console.log(`Addon lancé sur le port ${PORT}`);
+  console.log(`Configure: http://localhost:${PORT}/configure`);
+});
