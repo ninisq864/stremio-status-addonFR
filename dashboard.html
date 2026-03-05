@@ -483,6 +483,19 @@
 
     .pulse { animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* HISTORIQUE */
+    .uptime-bar-row { display:flex; align-items:center; gap:12px; }
+    .uptime-bar-name { font-size:12px; font-weight:600; color:var(--text); min-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .uptime-bar-track { flex:1; height:10px; background:var(--surface2); border-radius:6px; overflow:hidden; position:relative; }
+    .uptime-bar-fill { height:100%; border-radius:6px; transition:width 0.5s; }
+    .uptime-bar-pct { font-size:12px; font-family:'Space Mono',monospace; font-weight:700; min-width:48px; text-align:right; }
+    .incident-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); font-size:12px; }
+    .incident-row:last-child { border-bottom:none; }
+    .incident-name { font-weight:700; color:var(--text); min-width:160px; }
+    .incident-time { color:var(--text2); font-family:'Space Mono',monospace; }
+    .incident-dur { color:var(--red); font-weight:700; font-family:'Space Mono',monospace; min-width:70px; text-align:right; }
+    .no-incidents { padding:24px; text-align:center; color:var(--muted); font-size:13px; }
   </style>
 </head>
 <body>
@@ -520,6 +533,7 @@
         <div class="nav-section-label">Général</div>
         <button class="nav-item active" onclick="showPage('stats', this)">📊 Statistiques</button>
         <button class="nav-item" onclick="showPage('instances', this)">🖥️ Instances</button>
+        <button class="nav-item" onclick="showPage('history', this); renderHistory()">📈 Historique</button>
         <div class="nav-section-label">Personnalisation</div>
         <button class="nav-item" onclick="showPage('logos', this)">🖼️ Logos</button>
         <button class="nav-item" onclick="showPage('settings', this)">⚙️ Paramètres</button>
@@ -565,6 +579,27 @@
         <div id="instances-by-group"></div>
       </div>
 
+      <!-- HISTORIQUE -->
+      <div class="page" id="page-history">
+        <div class="page-header">
+          <div class="page-title">Historique</div>
+          <div class="page-sub">Graphique d'uptime et incidents des dernières 24h</div>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat-card"><div class="stat-label">Incidents (24h)</div><div class="stat-value red" id="hist-incidents">—</div></div>
+          <div class="stat-card"><div class="stat-label">Durée moy. incident</div><div class="stat-value orange" id="hist-avgdur">—</div></div>
+          <div class="stat-card"><div class="stat-label">Uptime global (24h)</div><div class="stat-value green" id="hist-uptime">—</div></div>
+        </div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-head"><span class="card-title">📈 Uptime par instance</span></div>
+          <div id="history-bars" style="padding:16px;display:flex;flex-direction:column;gap:12px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">🔴 Incidents détectés</span></div>
+          <div id="history-incidents"></div>
+        </div>
+      </div>
+
       <!-- LOGOS -->
       <div class="page" id="page-logos">
         <div class="page-header">
@@ -593,7 +628,7 @@
               <div class="setting-desc">Durée en secondes avant rafraîchissement des données</div>
             </div>
             <div class="setting-control">
-              <input type="number" class="setting-input" id="setting-ttl" value="30" min="10" max="3600">
+              <input type="number" class="setting-input" id="setting-ttl" value="60" min="10" max="3600">
               <button class="btn-save" onclick="saveTTL()">Sauvegarder</button>
             </div>
           </div>
@@ -884,6 +919,81 @@
   function copyManifest() {
     navigator.clipboard.writeText(`${window.location.origin}/manifest.json`);
     toast('📋 Lien copié !');
+  }
+
+  // ── HISTORIQUE ────────────────────────────────────────────────────────────
+  function renderHistory() {
+    if (!allData) return;
+    const { groups, heartbeats } = allData;
+    const cfg = currentConfig || {};
+    const customNames = cfg.customNames || {};
+
+    let allUptimes = [], allIncidents = [], totalDur = 0;
+    let barsHtml = '', incidentsHtml = '';
+
+    groups.forEach(group => {
+      const groupName = group.name.replace(/\n/,'').trim();
+      group.monitorList.forEach(m => {
+        const hbs = heartbeats[m.id] || [];
+        if (!hbs.length) return;
+        const displayName = customNames[m.id] || m.name;
+        const uptime = Math.round(hbs.filter(h=>h.status===1).length / hbs.length * 10000) / 100;
+        allUptimes.push(uptime);
+        const color = uptime >= 99 ? 'var(--green)' : uptime >= 95 ? '#f59e0b' : 'var(--red)';
+
+        barsHtml += `<div class="uptime-bar-row">
+          <div class="uptime-bar-name" title="${displayName}">${displayName}</div>
+          <div class="uptime-bar-track"><div class="uptime-bar-fill" style="width:${uptime}%;background:${color}"></div></div>
+          <div class="uptime-bar-pct" style="color:${color}">${uptime}%</div>
+        </div>`;
+
+        // Détecter les incidents (séquences de status=0)
+        let inIncident = false, incidentStart = null;
+        hbs.forEach((hb, i) => {
+          const t = new Date(hb.time || hb.createdAt);
+          if (hb.status === 0 && !inIncident) {
+            inIncident = true; incidentStart = t;
+          } else if (hb.status === 1 && inIncident) {
+            inIncident = false;
+            const dur = Math.round((t - incidentStart) / 60000);
+            totalDur += dur;
+            allIncidents.push({ name: displayName, group: groupName, start: incidentStart, dur });
+          }
+        });
+        if (inIncident && incidentStart) {
+          const dur = Math.round((Date.now() - incidentStart) / 60000);
+          totalDur += dur;
+          allIncidents.push({ name: displayName, group: groupName, start: incidentStart, dur, ongoing: true });
+        }
+      });
+    });
+
+    // Trier par date décroissante
+    allIncidents.sort((a,b) => b.start - a.start);
+
+    if (allIncidents.length === 0) {
+      incidentsHtml = '<div class="no-incidents">✅ Aucun incident détecté sur la période</div>';
+    } else {
+      allIncidents.forEach(inc => {
+        const dateStr = inc.start.toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        incidentsHtml += `<div class="incident-row">
+          <div class="dot down"></div>
+          <div class="incident-name">${inc.name}</div>
+          <div class="incident-time">${dateStr}${inc.ongoing ? ' <span style="color:var(--red)">● en cours</span>' : ''}</div>
+          <div class="incident-dur">${inc.dur < 60 ? inc.dur+'min' : Math.round(inc.dur/60*10)/10+'h'}</div>
+        </div>`;
+      });
+    }
+
+    const avgUptime = allUptimes.length ? Math.round(allUptimes.reduce((a,b)=>a+b,0)/allUptimes.length*100)/100 : 0;
+    const avgDur = allIncidents.length ? Math.round(totalDur / allIncidents.length) : 0;
+
+    document.getElementById('hist-incidents').textContent = allIncidents.length;
+    document.getElementById('hist-avgdur').textContent = avgDur ? (avgDur < 60 ? avgDur+'min' : Math.round(avgDur/60*10)/10+'h') : '—';
+    document.getElementById('hist-uptime').textContent = avgUptime + '%';
+    document.getElementById('hist-uptime').style.color = avgUptime >= 99 ? 'var(--green)' : avgUptime >= 95 ? '#f59e0b' : 'var(--red)';
+    document.getElementById('history-bars').innerHTML = barsHtml || '<div style="padding:16px;color:var(--muted)">Aucune donnée</div>';
+    document.getElementById('history-incidents').innerHTML = incidentsHtml;
   }
 
   // ── CACHE ─────────────────────────────────────────────────────────────────

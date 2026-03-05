@@ -184,7 +184,7 @@ const manifest = {
   name: '📡 Stremio FR - Statut Des Addons',
   description: 'Statut en temps réel des addons et instances Stremio FR',
   logo: 'https://i.imgur.com/8yPVxJJ.png',
-  catalogs: [{ type: 'other', id: 'stremio-status', name: '📡 Statut des Addons', extra: [{ name: 'genre', isRequired: false }], extraSupported: ['genre'] }],
+  catalogs: [{ type: 'other', id: 'stremio-status', name: '📡 Statut des Addons', extra: [{ name: 'search', isRequired: false }, { name: 'genre', isRequired: false }], extraSupported: ['search', 'genre'] }],
   resources: ['catalog'],
   types: ['other'],
 };
@@ -203,6 +203,9 @@ builder.defineCatalogHandler(async ({ extra }) => {
       for (const monitor of group.monitorList) {
         if (cfg.hiddenMonitors.includes(monitor.id)) continue;
         if (extra?.genre && extra.genre !== cleanName) continue;
+        const searchQuery = extra?.search?.toLowerCase();
+        const displayNameForSearch = (cfg.customNames?.[monitor.id] || monitor.name).toLowerCase();
+        if (searchQuery && !displayNameForSearch.includes(searchQuery) && !cleanName.toLowerCase().includes(searchQuery)) continue;
         const hbs = heartbeats[monitor.id] || [];
         const last = hbs[hbs.length - 1];
         const isUp = last ? last.status === 1 : false;
