@@ -16,7 +16,7 @@
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "express": "^5.2.1",
+    "socket.io-client": "^4.7.5",
     "stremio-addon-sdk": "^1.6.10"
-
   }
 }
