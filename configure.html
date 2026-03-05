@@ -4,20 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StremioFR — Installation</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
   <style>
     :root {
       --red: #e53e3e;
       --red-dark: #c53030;
-      --red-glow: rgba(229, 62, 62, 0.15);
-      --red-dim: rgba(229, 62, 62, 0.08);
+      --red-glow: rgba(229,62,62,0.18);
+      --red-dim: rgba(229,62,62,0.08);
       --bg: #0a0a0b;
       --bg2: #111113;
       --bg3: #18181b;
+      --bg4: #1e1e22;
       --border: rgba(255,255,255,0.06);
+      --border2: rgba(255,255,255,0.1);
       --text: #f0f0f0;
-      --muted: #666;
-      --muted2: #444;
+      --text2: #a0a0a8;
+      --muted: #555;
+      --muted2: #333;
+      --green: #48bb78;
+      --green-dim: rgba(72,187,120,0.1);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -30,171 +35,214 @@
       overflow-x: hidden;
     }
 
+    /* Ambient background */
     body::before {
       content: '';
       position: fixed;
-      top: -200px; left: 50%;
+      top: -300px; left: 50%;
       transform: translateX(-50%);
-      width: 800px; height: 600px;
-      background: radial-gradient(ellipse, rgba(229,62,62,0.07) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+      width: 900px; height: 700px;
+      background: radial-gradient(ellipse, rgba(229,62,62,0.06) 0%, transparent 65%);
+      pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -200px; right: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(ellipse, rgba(229,62,62,0.03) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
     }
 
+    /* NAV */
     nav {
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 40px; height: 60px;
-      background: rgba(10,10,11,0.85);
-      backdrop-filter: blur(20px);
+      padding: 0 40px; height: 58px;
+      background: rgba(10,10,11,0.9);
+      backdrop-filter: blur(24px);
       border-bottom: 1px solid var(--border);
     }
 
     .nav-brand { display: flex; align-items: center; gap: 10px; }
-
     .nav-logo-box {
-      width: 28px; height: 28px;
+      width: 26px; height: 26px;
       background: var(--red);
       border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
+      box-shadow: 0 0 12px var(--red-glow);
     }
-
     .nav-name {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 20px; letter-spacing: 2px; color: #fff;
+      font-size: 19px; letter-spacing: 2.5px; color: #fff;
     }
     .nav-name span { color: var(--red); }
 
     .nav-links { display: flex; align-items: center; gap: 8px; }
-
     .nav-link {
       display: flex; align-items: center; gap: 6px;
       padding: 6px 14px; border-radius: 8px;
       border: 1px solid var(--border); background: transparent;
-      color: var(--muted); font-size: 13px; font-family: 'DM Sans', sans-serif;
+      color: var(--text2); font-size: 12px; font-family: 'DM Sans', sans-serif;
       text-decoration: none; cursor: pointer; transition: all 0.2s;
+      letter-spacing: 0.2px;
     }
-    .nav-link:hover { color: var(--text); border-color: var(--muted2); background: var(--bg3); }
+    .nav-link:hover { color: var(--text); border-color: var(--muted); background: var(--bg3); }
 
+    /* HERO */
     .hero {
       position: relative; z-index: 1;
-      text-align: center; padding: 80px 40px 60px;
+      text-align: center; padding: 72px 40px 52px;
     }
 
     .hero-badge {
-      display: inline-flex; align-items: center; gap: 6px;
+      display: inline-flex; align-items: center; gap: 7px;
       padding: 5px 14px;
       background: var(--red-dim);
       border: 1px solid rgba(229,62,62,0.2);
-      border-radius: 100px; font-size: 12px; color: var(--red);
-      letter-spacing: 0.5px; margin-bottom: 28px;
+      border-radius: 100px; font-size: 11px; color: var(--red);
+      letter-spacing: 1px; text-transform: uppercase; font-weight: 500;
+      margin-bottom: 28px;
     }
-    .hero-badge::before {
-      content: ''; width: 6px; height: 6px;
+    .hero-badge-dot {
+      width: 6px; height: 6px;
       background: var(--red); border-radius: 50%;
       animation: pulse 2s infinite;
+      box-shadow: 0 0 6px var(--red);
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.8); }
+      50% { opacity: 0.4; transform: scale(0.7); }
     }
 
     .hero-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(52px, 8vw, 96px);
-      line-height: 0.9; letter-spacing: 4px; color: #fff; margin-bottom: 8px;
+      font-size: clamp(54px, 9vw, 100px);
+      line-height: 0.88; letter-spacing: 5px; color: #fff; margin-bottom: 0;
     }
-    .hero-title span { color: var(--red); display: block; }
+    .hero-title span {
+      color: var(--red); display: block;
+      text-shadow: 0 0 60px rgba(229,62,62,0.3);
+    }
 
     .hero-sub {
-      font-size: 15px; color: var(--muted);
-      max-width: 460px; margin: 20px auto 0;
-      line-height: 1.6; font-weight: 300;
+      font-size: 14px; color: var(--text2);
+      max-width: 420px; margin: 22px auto 0;
+      line-height: 1.7; font-weight: 300;
     }
 
+    /* STATS BAR */
     .stats-bar {
       display: flex; justify-content: center;
-      margin: 48px auto 0; max-width: 520px;
+      margin: 44px auto 0; max-width: 500px;
       background: var(--bg2); border: 1px solid var(--border);
       border-radius: 14px; overflow: hidden;
     }
-
     .stat-item {
-      flex: 1; padding: 20px 0; text-align: center;
+      flex: 1; padding: 18px 0; text-align: center;
       border-right: 1px solid var(--border);
+      transition: background 0.2s;
     }
     .stat-item:last-child { border-right: none; }
-
+    .stat-item:hover { background: var(--bg3); }
     .stat-num {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 32px; letter-spacing: 1px; color: var(--red); display: block;
+      font-size: 30px; letter-spacing: 1px; color: var(--red); display: block;
     }
+    .stat-num.green { color: var(--green); }
     .stat-label {
-      font-size: 11px; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;
+      font-size: 10px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.2px; margin-top: 2px;
     }
 
+    /* MAIN */
     main {
       position: relative; z-index: 1;
-      max-width: 900px; margin: 0 auto; padding: 0 24px 120px;
+      max-width: 860px; margin: 0 auto; padding: 0 24px 160px;
     }
+
+    /* SEARCH BAR */
+    .search-wrap {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .search-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); pointer-events: none;
+    }
+    #search-input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px 11px 40px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      transition: border-color 0.2s, background 0.2s;
+      outline: none;
+    }
+    #search-input::placeholder { color: var(--muted); }
+    #search-input:focus { border-color: rgba(229,62,62,0.4); background: var(--bg3); }
 
     .section-header {
       display: flex; align-items: center; gap: 12px;
-      margin-bottom: 20px; margin-top: 48px;
+      margin-bottom: 16px; margin-top: 44px;
     }
     .section-line { flex: 1; height: 1px; background: var(--border); }
     .section-label {
-      font-size: 11px; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 2px; white-space: nowrap;
+      font-size: 10px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 2.5px; white-space: nowrap;
     }
 
-    #content { display: flex; flex-direction: column; gap: 12px; }
+    #content { display: flex; flex-direction: column; gap: 10px; }
 
+    /* GROUP CARDS */
     .group-card {
       background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 14px; overflow: hidden; transition: border-color 0.2s;
+      border-radius: 14px; overflow: hidden;
+      transition: border-color 0.2s, transform 0.15s;
     }
-    .group-card:hover { border-color: rgba(229,62,62,0.2); }
+    .group-card:hover { border-color: rgba(229,62,62,0.15); }
 
     .group-head {
       display: flex; align-items: center; gap: 14px;
-      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.01);
     }
-
     .group-icon {
-      width: 36px; height: 36px; border-radius: 8px;
+      width: 34px; height: 34px; border-radius: 8px;
       background: var(--bg3); border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
       overflow: hidden; flex-shrink: 0;
     }
     .group-icon img { width: 100%; height: 100%; object-fit: cover; }
-
     .group-info { flex: 1; }
-    .group-name { font-size: 14px; font-weight: 600; color: var(--text); }
-    .group-count { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .group-name { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: 0.2px; }
+    .group-count { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
     .btn-select-all {
-      font-size: 12px; padding: 5px 12px; border-radius: 6px;
+      font-size: 11px; padding: 5px 11px; border-radius: 6px;
       border: 1px solid var(--border); background: transparent;
       color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
-      transition: all 0.15s;
+      transition: all 0.15s; letter-spacing: 0.2px;
     }
-    .btn-select-all:hover { background: var(--bg3); color: var(--text); }
+    .btn-select-all:hover { background: var(--bg3); color: var(--text); border-color: var(--muted2); }
 
-    .group-body { padding: 8px; }
+    .group-body { padding: 6px; }
 
     .instance {
       display: flex; align-items: center; gap: 12px;
-      padding: 11px 14px; border-radius: 8px; cursor: pointer;
-      transition: background 0.15s; border: 1px solid transparent;
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      transition: background 0.12s; border: 1px solid transparent;
     }
     .instance:hover { background: var(--bg3); }
-    .instance.selected { background: var(--red-dim); border-color: rgba(229,62,62,0.2); }
+    .instance.selected { background: var(--red-dim); border-color: rgba(229,62,62,0.18); }
+    .instance.hidden-search { display: none; }
 
     .checkbox {
-      width: 16px; height: 16px; border-radius: 4px;
+      width: 15px; height: 15px; border-radius: 4px;
       border: 1.5px solid var(--muted2); flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       transition: all 0.15s;
@@ -204,46 +252,90 @@
     .instance.selected .check-svg { opacity: 1; }
 
     .inst-name { flex: 1; font-size: 13px; color: var(--text); }
+    .inst-uptime { font-size: 11px; font-weight: 500; color: var(--muted); min-width: 38px; text-align: right; }
 
-    .inst-status { font-size: 12px; font-weight: 500; }
-    .inst-status.up { color: #48bb78; }
+    .inst-status { font-size: 11px; font-weight: 500; }
+    .inst-status.up { color: var(--green); }
     .inst-status.down { color: var(--red); }
 
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .status-dot.up { background: #48bb78; box-shadow: 0 0 6px rgba(72,187,120,0.5); }
-    .status-dot.down { background: var(--red); box-shadow: 0 0 6px rgba(229,62,62,0.5); }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.up { background: var(--green); box-shadow: 0 0 5px rgba(72,187,120,0.5); }
+    .status-dot.down { background: var(--red); box-shadow: 0 0 5px rgba(229,62,62,0.5); }
 
+    /* SETTINGS SECTION */
+    .settings-section {
+      margin-top: 52px;
+    }
+    .settings-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-info { flex: 1; }
+    .settings-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .settings-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    /* TOGGLE SWITCH */
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .toggle-label-text { font-size: 11px; color: var(--muted); }
+    .toggle {
+      position: relative; width: 40px; height: 22px; flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer;
+      inset: 0; background: var(--muted2);
+      border-radius: 22px; transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute; height: 16px; width: 16px;
+      left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--red); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* INSTALL BAR */
     .install-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-      padding: 16px 32px;
-      background: rgba(10,10,11,0.95);
-      backdrop-filter: blur(20px);
+      padding: 14px 32px;
+      background: rgba(10,10,11,0.96);
+      backdrop-filter: blur(24px);
       border-top: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
-
-    .install-info { font-size: 14px; color: var(--muted); }
+    .install-info { font-size: 13px; color: var(--muted); }
     .install-info strong {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px; color: var(--red); letter-spacing: 1px;
+      font-size: 20px; color: var(--red); letter-spacing: 1px;
     }
-
     .install-btns { display: flex; gap: 8px; }
 
     .btn {
       display: flex; align-items: center; gap: 7px;
-      padding: 10px 20px; border-radius: 9px;
+      padding: 9px 18px; border-radius: 9px;
       font-size: 13px; font-weight: 500;
       font-family: 'DM Sans', sans-serif;
       cursor: pointer; border: none; transition: all 0.15s;
     }
     .btn-red { background: var(--red); color: #fff; }
-    .btn-red:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-red:hover { background: var(--red-dark); transform: translateY(-1px); box-shadow: 0 4px 16px var(--red-glow); }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-outline:hover { background: var(--bg3); transform: translateY(-1px); }
-    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 10px 14px; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 9px 13px; }
     .btn-ghost:hover { color: var(--text); background: var(--bg3); }
 
+    /* LOADING */
     .loading { text-align: center; padding: 60px 0; color: var(--muted); font-size: 14px; }
     .loading-dots { display: inline-flex; gap: 4px; margin-left: 8px; }
     .loading-dots span {
@@ -257,13 +349,20 @@
       50% { transform: translateY(-4px); opacity: 1; }
     }
 
+    .no-results {
+      text-align: center; padding: 32px;
+      color: var(--muted); font-size: 13px;
+    }
+
+    /* TOAST */
     .toast {
       position: fixed; bottom: 90px; left: 50%;
       transform: translateX(-50%) translateY(10px);
-      background: var(--bg3); border: 1px solid var(--border);
+      background: var(--bg3); border: 1px solid var(--border2);
       color: var(--text); padding: 10px 20px; border-radius: 10px;
       font-size: 13px; opacity: 0; transition: all 0.25s;
       pointer-events: none; z-index: 999; white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -288,7 +387,10 @@
   </nav>
 
   <div class="hero">
-    <div class="hero-badge">Statut en temps réel</div>
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      Statut en temps réel
+    </div>
     <h1 class="hero-title">STATUT<span>DES ADDONS</span></h1>
     <p class="hero-sub">Sélectionne tes instances préférées et installe l'addon directement dans Stremio.</p>
     <div class="stats-bar">
@@ -297,7 +399,7 @@
         <span class="stat-label">Instances</span>
       </div>
       <div class="stat-item">
-        <span class="stat-num" id="stat-online" style="color:#48bb78">—</span>
+        <span class="stat-num green" id="stat-online">—</span>
         <span class="stat-label">En ligne</span>
       </div>
       <div class="stat-item">
@@ -312,17 +414,54 @@
   </div>
 
   <main>
+
+    <!-- Section instances -->
     <div class="section-header">
       <div class="section-line"></div>
       <div class="section-label">Choisir les instances</div>
       <div class="section-line"></div>
     </div>
+
+    <!-- Barre de recherche -->
+    <div class="search-wrap">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search-input" placeholder="Rechercher une instance..." oninput="filterInstances(this.value)">
+    </div>
+
     <div id="content">
       <div class="loading">
         Chargement des instances
         <span class="loading-dots"><span></span><span></span><span></span></span>
       </div>
     </div>
+    <div id="no-results" class="no-results" style="display:none">🔍 Aucune instance trouvée</div>
+
+    <!-- Section paramètres -->
+    <div class="settings-section">
+      <div class="section-header">
+        <div class="section-line"></div>
+        <div class="section-label">Paramètres</div>
+        <div class="section-line"></div>
+      </div>
+      <div class="settings-box">
+        <div class="settings-row">
+          <div class="settings-info">
+            <div class="settings-label">🔍 Recherche dans Stremio</div>
+            <div class="settings-desc">Permet de rechercher des addons par nom directement depuis la barre de recherche de Stremio. Désactive si tu ne veux pas que l'addon apparaisse dans les résultats de recherche.</div>
+          </div>
+          <div class="toggle-wrap">
+            <span class="toggle-label-text" id="search-toggle-label">Activée</span>
+            <label class="toggle">
+              <input type="checkbox" id="search-toggle" checked onchange="toggleSearch(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <div class="install-bar">
@@ -347,13 +486,19 @@
     const SECTION_ICONS = {
       'AIOStreams':    'https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png',
       'AIOMetadata':  'https://aiometadata.elfhosted.com/logo.png',
-      'StremThru':    'https://i.imgur.com/vhQAnad.png',
-      'Stream-Fusion':'https://i.imgur.com/jOzd3Oi.png',
+      'StremThru':    'https://emojiapi.dev/api/v1/sparkles/256.png',
+      'Stream-Fusion':'https://stream-fusion.stremiofr.com/static/logo-stream-fusion.png',
       'COMET':        'https://i.imgur.com/jmVoVMu.jpeg',
+      'WAStream':     'https://wastream.striho.top/static/wastream-logo.png',
     };
 
     let selected = new Set();
     let allMonitors = [];
+    let searchEnabled = true;
+
+    // Charger préférence recherche depuis localStorage
+    const savedSearch = localStorage.getItem('stremio_search_enabled');
+    if (savedSearch !== null) searchEnabled = savedSearch === 'true';
 
     async function load() {
       try {
@@ -386,7 +531,7 @@
         totalDown += group.monitorList.length - upCount;
 
         html += `
-        <div class="group-card">
+        <div class="group-card" data-group="${name}">
           <div class="group-head">
             <div class="group-icon">
               ${logo ? `<img src="${logo}" onerror="this.parentElement.innerHTML='📡'">` : '📡'}
@@ -403,19 +548,19 @@
               const last = hbs.slice(-1)[0];
               const isUp = last && last.status === 1;
               const uptime = calcUptime(hbs);
-              const uptimeClass = uptime >= 99 ? 'high' : uptime >= 95 ? 'mid' : 'low';
               uptimeSum += uptime; uptimeCount++;
               allMonitors.push({ id: monitor.id, name: monitor.name, group: name });
               return `
-              <div class="instance" id="inst-${monitor.id}" onclick="toggle(${monitor.id})">
+              <div class="instance" id="inst-${monitor.id}" onclick="toggle(${monitor.id})" data-name="${monitor.name.toLowerCase()}">
                 <div class="checkbox">
                   <svg class="check-svg" width="9" height="7" viewBox="0 0 9 7" fill="none">
                     <path d="M1 3.5L3 5.5L8 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
                 <span class="inst-name">${monitor.name}</span>
-                <span class="inst-status ${isUp ? 'up' : 'down'}">${isUp ? 'En ligne' : 'Hors ligne'}</span>
-                <div class="status-dot ${isUp ? 'up' : 'down'}"></div>
+                <span class="inst-uptime" style="color:${uptime>=99?'var(--green)':uptime>=95?'#f59e0b':'var(--red)'}">${uptime}%</span>
+                <span class="inst-status ${isUp?'up':'down'}">${isUp?'En ligne':'Hors ligne'}</span>
+                <div class="status-dot ${isUp?'up':'down'}"></div>
               </div>`;
             }).join('')}
           </div>
@@ -427,6 +572,29 @@
       document.getElementById('stat-online').textContent = totalUp;
       document.getElementById('stat-offline').textContent = totalDown;
       document.getElementById('stat-uptime').textContent = uptimeCount ? Math.round(uptimeSum/uptimeCount*10)/10 + '%' : '—';
+
+      // Restaurer état toggle
+      document.getElementById('search-toggle').checked = searchEnabled;
+      updateToggleLabel(searchEnabled);
+    }
+
+    function filterInstances(query) {
+      const q = query.toLowerCase().trim();
+      let anyVisible = false;
+
+      document.querySelectorAll('.group-card').forEach(card => {
+        let groupVisible = false;
+        card.querySelectorAll('.instance').forEach(inst => {
+          const name = inst.dataset.name || '';
+          const match = !q || name.includes(q);
+          inst.classList.toggle('hidden-search', !match);
+          if (match) groupVisible = true;
+        });
+        card.style.display = groupVisible ? '' : 'none';
+        if (groupVisible) anyVisible = true;
+      });
+
+      document.getElementById('no-results').style.display = anyVisible ? 'none' : 'block';
     }
 
     function toggle(id) {
@@ -448,14 +616,33 @@
       document.getElementById('count').textContent = selected.size;
     }
 
+    function toggleSearch(enabled) {
+      searchEnabled = enabled;
+      localStorage.setItem('stremio_search_enabled', enabled);
+      updateToggleLabel(enabled);
+      toast(enabled ? '🔍 Recherche Stremio activée' : '🚫 Recherche Stremio désactivée');
+    }
+
+    function updateToggleLabel(enabled) {
+      document.getElementById('search-toggle-label').textContent = enabled ? 'Activée' : 'Désactivée';
+      document.getElementById('search-toggle-label').style.color = enabled ? 'var(--green)' : 'var(--muted)';
+    }
+
+    function getManifestUrl() {
+      const params = new URLSearchParams();
+      if (!searchEnabled) params.set('noSearch', '1');
+      const query = params.toString();
+      return `${ADDON_URL}/manifest.json${query ? '?' + query : ''}`;
+    }
+
     function install(method) {
-      const url = `${ADDON_URL}/manifest.json`;
+      const url = getManifestUrl();
       if (method === 'app') window.open(`stremio://${url.replace(/https?:\/\//,'')}`, '_blank');
       else window.open(`https://web.stremio.com/#/addons?addon=${encodeURIComponent(url)}`, '_blank');
     }
 
     function copyLink() {
-      navigator.clipboard.writeText(`${ADDON_URL}/manifest.json`).then(() => toast('✅ Lien copié !'));
+      navigator.clipboard.writeText(getManifestUrl()).then(() => toast('✅ Lien copié !'));
     }
 
     function toast(msg) {
