@@ -4,7 +4,6 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const cookieParser = require('cookie-parser');
 
 const UPTIME_KUMA_URL = 'https://uptime-kuma-production-7c44.up.railway.app';
 const STATUS_SLUG = 'stremiofr-addons';
@@ -23,7 +22,8 @@ async function initPassword() {
     console.log(`ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}`);
   }
 }
-const CACHE_TTL = 60 * 1000;
+// TTL dynamique — lu depuis la config GitHub
+function getCacheTTL() { return (config.cacheTTL || 60) * 1000; }
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24h
 
@@ -46,6 +46,7 @@ const DEFAULT_CONFIG = {
   customNames: {},
   customLinks: {},
   defaultPoster: 'https://i.imgur.com/8yPVxJJ.png',
+  cacheTTL: 60,
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -153,11 +154,8 @@ function resetAttempts(ip) {
 
 // ── AUTH MIDDLEWARE ────────────────────────────────────────────────────────────
 function authMiddleware(req, res, next) {
-  // Lire depuis cookie HttpOnly (priorité) ou header Bearer (fallback)
-  const cookieToken = req.cookies?.admin_token;
   const authHeader = req.headers['authorization'];
-  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const token = cookieToken || bearerToken;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.headers['x-admin-token'];
   if (!token) return res.status(401).json({ error: 'Token manquant' });
   const payload = verifyToken(token);
   if (!payload) return res.status(401).json({ error: 'Token invalide ou expiré' });
@@ -170,7 +168,7 @@ let cache = { data: null, ts: 0 };
 
 async function getUptimeData() {
   const now = Date.now();
-  if (cache.data && now - cache.ts < CACHE_TTL) return cache.data;
+  if (cache.data && now - cache.ts < getCacheTTL()) return cache.data;
   const [pageRes, hbRes] = await Promise.all([
     axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`, { headers: { Accept: 'application/json' } }),
     axios.get(`${UPTIME_KUMA_URL}/api/status-page/heartbeat/${STATUS_SLUG}`, { headers: { Accept: 'application/json' } }),
@@ -233,7 +231,6 @@ const addonInterface = builder.getInterface();
 const router = getRouter(addonInterface);
 const app = express();
 app.use(express.json());
-app.use(cookieParser());
 
 // Headers de sécurité
 app.use((req, res, next) => {
@@ -279,14 +276,7 @@ app.post('/api/login', async (req, res) => {
     resetAttempts(ip);
     const token = generateToken({ role: 'admin' });
     console.log(`✅ Connexion admin depuis ${ip}`);
-    // Cookie HttpOnly = invisible depuis JavaScript, même avec DevTools
-    res.cookie('admin_token', token, {
-      httpOnly: true,      // Impossible à lire depuis JS
-      secure: process.env.NODE_ENV === 'production', // HTTPS only en prod
-      sameSite: 'strict',  // Protège contre CSRF
-      maxAge: SESSION_DURATION,
-    });
-    res.json({ ok: true, expiresIn: SESSION_DURATION });
+    res.json({ token, expiresIn: SESSION_DURATION });
   } else {
     recordFailedAttempt(ip);
     const attempts = loginAttempts.get(ip);
@@ -323,12 +313,6 @@ app.post('/api/change-password', authMiddleware, async (req, res) => {
   console.log('🔐 Mot de passe changé');
   console.log(`💡 Nouveau hash à sauvegarder: ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}`);
   res.json({ ok: true, hash: ADMIN_PASSWORD_HASH });
-});
-
-// Logout : efface le cookie côté serveur
-app.post('/api/logout', (req, res) => {
-  res.clearCookie('admin_token', { httpOnly: true, sameSite: 'strict' });
-  res.json({ ok: true });
 });
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'stremiofr-webhook';

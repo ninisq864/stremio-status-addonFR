@@ -640,25 +640,6 @@
 
 <script>
   let token = '';
-
-  // Restaurer session depuis sessionStorage (valide seulement dans cet onglet)
-  (function() {
-    const saved = sessionStorage.getItem('adminToken');
-    if (saved) {
-      fetch('/api/config', { headers: { 'Authorization': `Bearer ${saved}` } })
-        .then(r => {
-          if (r.ok) {
-            token = saved;
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            init();
-          } else {
-            sessionStorage.removeItem('adminToken');
-          }
-        }).catch(() => sessionStorage.removeItem('adminToken'));
-    }
-  })();
-
   let allData = null;
   let currentConfig = null;
   let isDark = true;
@@ -666,44 +647,27 @@
   // ── AUTH ──────────────────────────────────────────────────────────────────
   async function login() {
     const pwd = document.getElementById('pwd-input').value;
-    if (!pwd) return;
-    const btn = document.querySelector('.btn-primary');
-    btn.textContent = 'Connexion...';
-    btn.disabled = true;
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ password: pwd })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        // Le cookie HttpOnly est posé automatiquement par le serveur
-        // Aucun token visible dans JS ou DevTools !
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-        init();
-      } else {
-        const errEl = document.getElementById('login-error');
-        errEl.textContent = data.error || 'Mot de passe incorrect';
-        errEl.style.display = 'block';
-      }
-    } catch(e) {
-      document.getElementById('login-error').textContent = 'Erreur de connexion';
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    });
+    if (res.ok) {
+      const d = await res.json();
+      token = d.token;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      init();
+    } else {
       document.getElementById('login-error').style.display = 'block';
     }
-    btn.textContent = 'Accéder →';
-    btn.disabled = false;
   }
 
-  async function logout() {
-    // Effacer le cookie côté serveur
-    await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+  function logout() {
+    token = '';
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('pwd-input').value = '';
-    document.getElementById('login-error').style.display = 'none';
   }
 
   // ── INIT ──────────────────────────────────────────────────────────────────
@@ -722,10 +686,10 @@
   }
 
   async function loadConfig() {
-    const res = await fetch('/api/config', { credentials: 'same-origin' });
+    const res = await fetch('/api/config', { headers: { 'x-admin-token': token } });
     currentConfig = await res.json();
     renderLogos();
-    if (currentConfig.cacheTTL) document.getElementById('setting-ttl').value = currentConfig.cacheTTL / 1000;
+    if (currentConfig.cacheTTL) document.getElementById('setting-ttl').value = currentConfig.cacheTTL;
   }
 
   function updateCacheAge() {
@@ -897,7 +861,8 @@
 
   // ── SETTINGS ──────────────────────────────────────────────────────────────
   async function saveTTL() {
-    const ttl = parseInt(document.getElementById('setting-ttl').value) * 1000;
+    const ttl = parseInt(document.getElementById('setting-ttl').value);
+    if (!ttl || ttl < 10) { toast('❌ Minimum 10 secondes'); return; }
     const cfg = { ...currentConfig, cacheTTL: ttl };
     await saveConfig(cfg);
     currentConfig = cfg;
@@ -909,7 +874,7 @@
     if (!pwd) { toast('❌ Entrez un nouveau mot de passe'); return; }
     await fetch('/api/change-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
       body: JSON.stringify({ password: pwd })
     });
     toast('✅ Mot de passe changé — reconnectez-vous');
@@ -923,7 +888,7 @@
 
   // ── CACHE ─────────────────────────────────────────────────────────────────
   async function refreshCache() {
-    await fetch('/api/cache/refresh', { method: 'POST', credentials: 'same-origin' });
+    await fetch('/api/cache/refresh', { method: 'POST', headers: { 'x-admin-token': token } });
     await loadData();
     toast('⚡ Cache vidé !');
   }
@@ -939,7 +904,7 @@
   async function saveConfig(cfg) {
     await fetch('/api/config', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
       body: JSON.stringify(cfg)
     });
   }
