@@ -573,9 +573,8 @@
       <div class="sidebar-nav">
         <div class="nav-section-label">Général</div>
         <button class="nav-item active" onclick="showPage('stats', this)">📊 Statistiques</button>
-        <button class="nav-item" onclick="showPage('instances', this)">🖥️ Instances</button>
+        <button class="nav-item" onclick="showPage('instances', this); loadInstancesWithKuma()">🖥️ Instances</button>
         <button class="nav-item" onclick="showPage('history', this); renderHistory()">📈 Historique</button>
-        <button class="nav-item" onclick="showPage('monitors', this); loadMonitors()">🔧 Monitors</button>
         <div class="nav-section-label">Personnalisation</div>
         <button class="nav-item" onclick="showPage('logos', this)">🖼️ Logos</button>
         <button class="nav-item" onclick="showPage('settings', this)">⚙️ Paramètres</button>
@@ -612,26 +611,17 @@
         </div>
       </div>
 
-      <!-- INSTANCES -->
+      <!-- INSTANCES (fusionné avec Monitors) -->
       <div class="page" id="page-instances">
         <div class="page-header">
           <div class="page-title">Gestion des instances</div>
-          <div class="page-sub">Modifiez les noms, liens, masquez ou supprimez des instances</div>
-        </div>
-        <div id="instances-by-group"></div>
-      </div>
-
-      <!-- MONITORS -->
-      <div class="page" id="page-monitors">
-        <div class="page-header">
-          <div class="page-title">Monitors Uptime Kuma</div>
-          <div class="page-sub">Gérez vos monitors directement depuis le dashboard</div>
+          <div class="page-sub">Modifiez les noms, URLs, masquez, mettez en pause ou supprimez vos monitors</div>
         </div>
         <div id="kuma-status-wrap"></div>
-        <div class="card">
+        <div class="card" style="margin-bottom:12px">
           <div class="card-head">
-            <span class="card-title">🔧 Tous les monitors <span id="monitors-count" style="color:var(--muted);font-size:12px;font-weight:400"></span></span>
-            <button class="btn-add" onclick="toggleAddForm()">+ Ajouter</button>
+            <span class="card-title">➕ Ajouter un monitor</span>
+            <button class="btn-add" onclick="toggleAddForm()">+ Nouveau</button>
           </div>
           <div class="add-monitor-form" id="add-monitor-form">
             <div class="form-field">
@@ -639,7 +629,7 @@
               <input class="form-input" id="new-monitor-name" placeholder="Mon Addon" style="width:160px">
             </div>
             <div class="form-field">
-              <label>URL</label>
+              <label>URL surveillée</label>
               <input class="form-input" id="new-monitor-url" placeholder="https://..." style="width:260px">
             </div>
             <div class="form-field">
@@ -657,8 +647,8 @@
             <button class="btn-save" onclick="addMonitor()" style="margin-top:18px">✅ Créer</button>
             <button class="btn-cancel" onclick="toggleAddForm()" style="margin-top:18px">Annuler</button>
           </div>
-          <div id="monitors-list"></div>
         </div>
+        <div id="instances-by-group"></div>
       </div>
 
       <!-- LOGOS -->
@@ -831,6 +821,21 @@
   }
 
   // ── INSTANCES ─────────────────────────────────────────────────────────────
+  async function loadInstancesWithKuma() {
+    // Charger statut Kuma
+    try {
+      const statusRes = await fetch('/api/kuma/status', { headers: { 'x-admin-token': token } });
+      const status = await statusRes.json();
+      const badge = status.ready
+        ? `<div class="kuma-status-badge ok">✅ Connecté à Uptime Kuma — ${status.monitorsCount} monitors</div>`
+        : `<div class="kuma-status-badge err">⚠️ Uptime Kuma non connecté — certaines fonctions désactivées</div>`;
+      document.getElementById('kuma-status-wrap').innerHTML = badge;
+    } catch(e) {
+      document.getElementById('kuma-status-wrap').innerHTML = '';
+    }
+    renderInstances();
+  }
+
   function renderInstances() {
     if (!allData || !currentConfig) return;
     const { groups, heartbeats } = allData;
@@ -861,12 +866,14 @@
 
         html += `<div class="row" id="row-${m.id}" style="${isHidden?'opacity:0.4':''}">
           <div class="dot ${isUp?'up':'down'}"></div>
-          <input class="inline-input" value="${displayName}" id="name-${m.id}" placeholder="Nom affiché">
-          <input class="link-input" value="${link}" id="link-${m.id}" placeholder="https://... (lien optionnel)">
+          <input class="inline-input" value="${displayName}" id="name-${m.id}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
+          <input class="link-input" value="${link}" id="link-${m.id}" placeholder="https://... (lien optionnel)" title="Lien du site hébergeur">
           <button class="action-btn" onclick="saveInstance(${m.id})">💾 Sauv.</button>
           <button class="action-btn ${isHidden?'success':''}" onclick="toggleHide(${m.id}, this)">
             ${isHidden?'👁️ Afficher':'🚫 Masquer'}
           </button>
+          <button class="btn-pause" onclick="toggleMonitor(${m.id}, true)" title="Mettre en pause dans Uptime Kuma">⏸</button>
+          <button class="btn-delete" onclick="deleteMonitor(${m.id}, '${(displayName).replace(/'/g,"\\'")}')">🗑️</button>
         </div>`;
       });
 
