@@ -3,416 +3,347 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stremio FR Status</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>StremioFR — Installation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --red: #e53e3e;
+      --red-dark: #c53030;
+      --red-glow: rgba(229, 62, 62, 0.15);
+      --red-dim: rgba(229, 62, 62, 0.08);
+      --bg: #0a0a0b;
+      --bg2: #111113;
+      --bg3: #18181b;
+      --border: rgba(255,255,255,0.06);
+      --text: #f0f0f0;
+      --muted: #666;
+      --muted2: #444;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: #111318;
-      color: #e2e8f0;
-      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    /* Navbar */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 800px; height: 600px;
+      background: radial-gradient(ellipse, rgba(229,62,62,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
     nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      height: 56px;
-      background: #0d0f14;
-      border-bottom: 1px solid hsla(0, 0%, 100%, 0.06);
-      position: sticky;
-      top: 0;
-      z-index: 50;
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; height: 60px;
+      background: rgba(10,10,11,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
     }
 
-    .nav-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+
+    .nav-logo-box {
+      width: 28px; height: 28px;
+      background: var(--red);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
     }
 
-    .nav-logo {
-      font-size: 20px;
+    .nav-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px; letter-spacing: 2px; color: #fff;
     }
+    .nav-name span { color: var(--red); }
 
-    .nav-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #fff;
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+
+    .nav-link {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); font-size: 13px; font-family: 'DM Sans', sans-serif;
+      text-decoration: none; cursor: pointer; transition: all 0.2s;
     }
+    .nav-link:hover { color: var(--text); border-color: var(--muted2); background: var(--bg3); }
 
-    .nav-version {
-      font-size: 11px;
-      color: #555;
-      background: #1a1d24;
-      border: 1px solid #2a2d35;
-      border-radius: 4px;
-      padding: 2px 8px;
-    }
-
-    .nav-discord {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: #1a1d24;
-      border: 1px solid #2a2d35;
-      border-radius: 8px;
-      padding: 7px 14px;
-      font-size: 13px;
-      font-weight: 500;
-      color: #aaa;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-    .nav-discord:hover { color: #fff; border-color: #3a3d45; }
-
-    /* Hero */
     .hero {
-      text-align: center;
-      padding: 52px 24px 40px;
+      position: relative; z-index: 1;
+      text-align: center; padding: 80px 40px 60px;
     }
 
-    .hero h1 {
-      font-size: 36px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 10px;
-      letter-spacing: -0.5px;
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 14px;
+      background: var(--red-dim);
+      border: 1px solid rgba(229,62,62,0.2);
+      border-radius: 100px; font-size: 12px; color: var(--red);
+      letter-spacing: 0.5px; margin-bottom: 28px;
+    }
+    .hero-badge::before {
+      content: ''; width: 6px; height: 6px;
+      background: var(--red); border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
     }
 
-    .hero h1 span {
-      color: #f97316;
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(52px, 8vw, 96px);
+      line-height: 0.9; letter-spacing: 4px; color: #fff; margin-bottom: 8px;
+    }
+    .hero-title span { color: var(--red); display: block; }
+
+    .hero-sub {
+      font-size: 15px; color: var(--muted);
+      max-width: 460px; margin: 20px auto 0;
+      line-height: 1.6; font-weight: 300;
     }
 
-    .hero p {
-      color: #6b7280;
-      font-size: 15px;
-      margin-bottom: 24px;
+    .stats-bar {
+      display: flex; justify-content: center;
+      margin: 48px auto 0; max-width: 520px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
     }
 
-    .hero-links {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
+    .stat-item {
+      flex: 1; padding: 20px 0; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+
+    .stat-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px; letter-spacing: 1px; color: var(--red); display: block;
+    }
+    .stat-label {
+      font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;
     }
 
-    .hero-link {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: #1a1d24;
-      border: 1px solid #2a2d35;
-      border-radius: 100px;
-      padding: 8px 18px;
-      font-size: 13px;
-      font-weight: 500;
-      color: #9ca3af;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-    .hero-link:hover { color: #fff; border-color: #3a3d45; }
-
-    /* Main */
-    .main {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 0 24px 80px;
+    main {
+      position: relative; z-index: 1;
+      max-width: 900px; margin: 0 auto; padding: 0 24px 120px;
     }
 
-    /* Section card */
-    .section-card {
-      background: #16191f;
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 14px;
-      margin-bottom: 16px;
-      overflow: hidden;
-      animation: fadeUp 0.4s ease both;
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px; margin-top: 48px;
+    }
+    .section-line { flex: 1; height: 1px; background: var(--border); }
+    .section-label {
+      font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 2px; white-space: nowrap;
     }
 
-    .section-card:nth-child(1) { animation-delay: 0.05s; }
-    .section-card:nth-child(2) { animation-delay: 0.1s; }
-    .section-card:nth-child(3) { animation-delay: 0.15s; }
-    .section-card:nth-child(4) { animation-delay: 0.2s; }
-    .section-card:nth-child(5) { animation-delay: 0.25s; }
+    #content { display: flex; flex-direction: column; gap: 12px; }
 
-    .section-head {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 18px 22px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+    .group-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden; transition: border-color 0.2s;
+    }
+    .group-card:hover { border-color: rgba(229,62,62,0.2); }
+
+    .group-head {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
     }
 
-    .section-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      overflow: hidden;
+    .group-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--bg3); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; flex-shrink: 0;
     }
+    .group-icon img { width: 100%; height: 100%; object-fit: cover; }
 
-    .section-icon img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
+    .group-info { flex: 1; }
+    .group-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .group-count { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    .section-icon.orange { background: rgba(249,115,22,0.15); }
-    .section-icon.blue   { background: rgba(59,130,246,0.15); }
-    .section-icon.green  { background: rgba(34,197,94,0.15); }
-    .section-icon.purple { background: rgba(168,85,247,0.15); }
-    .section-icon.cyan   { background: rgba(6,182,212,0.15); }
-
-    .section-head-info { flex: 1; }
-
-    .section-head-title {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      color: #9ca3af;
-    }
-
-    .section-head-sub {
-      font-size: 12px;
-      color: #4b5563;
-      margin-top: 1px;
-    }
-
-    .section-select-all {
-      font-size: 12px;
-      color: #6b7280;
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      transition: color 0.2s;
-    }
-    .section-select-all:hover { color: #f97316; }
-
-    .section-body {
-      padding: 12px 16px;
-    }
-
-    /* Instance row */
-    .instance {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 11px 12px;
-      border-radius: 9px;
-      cursor: pointer;
-      transition: background 0.15s;
-      user-select: none;
-    }
-
-    .instance:hover { background: rgba(255,255,255,0.04); }
-    .instance.selected { background: rgba(249,115,22,0.06); }
-
-    .checkbox {
-      width: 17px;
-      height: 17px;
-      border: 1.5px solid #374151;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+    .btn-select-all {
+      font-size: 12px; padding: 5px 12px; border-radius: 6px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
       transition: all 0.15s;
     }
-    .instance.selected .checkbox {
-      background: #f97316;
-      border-color: #f97316;
-    }
-    .check-svg { display: none; }
-    .instance.selected .check-svg { display: block; }
+    .btn-select-all:hover { background: var(--bg3); color: var(--text); }
 
-    .instance-name {
-      flex: 1;
-      font-size: 14px;
-      font-weight: 500;
-      color: #d1d5db;
-    }
+    .group-body { padding: 8px; }
 
-    .uptime {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 2px 9px;
-      border-radius: 100px;
+    .instance {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; border-radius: 8px; cursor: pointer;
+      transition: background 0.15s; border: 1px solid transparent;
     }
-    .uptime.high { color: #22c55e; background: rgba(34,197,94,0.1); }
-    .uptime.mid  { color: #f59e0b; background: rgba(245,158,11,0.1); }
-    .uptime.low  { color: #ef4444; background: rgba(239,68,68,0.1); }
+    .instance:hover { background: var(--bg3); }
+    .instance.selected { background: var(--red-dim); border-color: rgba(229,62,62,0.2); }
 
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      flex-shrink: 0;
+    .checkbox {
+      width: 16px; height: 16px; border-radius: 4px;
+      border: 1.5px solid var(--muted2); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
     }
-    .status-dot.up   { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); }
-    .status-dot.down { background: #ef4444; box-shadow: 0 0 5px rgba(239,68,68,0.6); }
+    .instance.selected .checkbox { background: var(--red); border-color: var(--red); }
+    .check-svg { opacity: 0; transition: opacity 0.15s; }
+    .instance.selected .check-svg { opacity: 1; }
 
-    /* Loading */
-    .loading {
-      text-align: center;
-      padding: 60px 0;
-      color: #4b5563;
-      font-size: 14px;
+    .inst-name { flex: 1; font-size: 13px; color: var(--text); }
+
+    .inst-uptime {
+      font-size: 12px; font-weight: 500;
+      font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.5px;
     }
+    .inst-uptime.high { color: #48bb78; }
+    .inst-uptime.mid { color: #ecc94b; }
+    .inst-uptime.low { color: var(--red); }
 
-    .spinner {
-      width: 28px;
-      height: 28px;
-      border: 2px solid #1f2937;
-      border-top-color: #f97316;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      margin: 0 auto 14px;
-    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.up { background: #48bb78; box-shadow: 0 0 6px rgba(72,187,120,0.5); }
+    .status-dot.down { background: var(--red); box-shadow: 0 0 6px rgba(229,62,62,0.5); }
 
-    /* Install bar */
     .install-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #0d0f14;
-      border-top: 1px solid rgba(255,255,255,0.07);
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
       padding: 16px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      z-index: 40;
+      background: rgba(10,10,11,0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
 
-    .install-info {
-      font-size: 13px;
-      color: #6b7280;
+    .install-info { font-size: 14px; color: var(--muted); }
+    .install-info strong {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px; color: var(--red); letter-spacing: 1px;
     }
-    .install-info strong { color: #f97316; }
 
-    .install-btns {
-      display: flex;
-      gap: 8px;
-    }
+    .install-btns { display: flex; gap: 8px; }
 
     .btn {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 9px 18px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: none;
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 20px; border-radius: 9px;
+      font-size: 13px; font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer; border: none; transition: all 0.15s;
+    }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-red:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--bg3); transform: translateY(-1px); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 10px 14px; }
+    .btn-ghost:hover { color: var(--text); background: var(--bg3); }
+
+    .loading { text-align: center; padding: 60px 0; color: var(--muted); font-size: 14px; }
+    .loading-dots { display: inline-flex; gap: 4px; margin-left: 8px; }
+    .loading-dots span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--red); animation: bounce 1.2s infinite;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); opacity: 0.4; }
+      50% { transform: translateY(-4px); opacity: 1; }
     }
 
-    .btn-orange {
-      background: #f97316;
-      color: #fff;
-    }
-    .btn-orange:hover { background: #ea6c0d; }
-
-    .btn-outline {
-      background: transparent;
-      border: 1px solid #2a2d35;
-      color: #9ca3af;
-    }
-    .btn-outline:hover { border-color: #3a3d45; color: #fff; }
-
-    /* Toast */
     .toast {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: #1f2937;
-      border: 1px solid #374151;
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-size: 13px;
-      opacity: 0;
-      transition: all 0.3s;
-      pointer-events: none;
-      white-space: nowrap;
-      z-index: 100;
+      position: fixed; bottom: 90px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 20px; border-radius: 10px;
+      font-size: 13px; opacity: 0; transition: all 0.25s;
+      pointer-events: none; z-index: 999; white-space: nowrap;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 4px; }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
   <nav>
-    <div class="nav-left">
-      <span class="nav-logo">📡</span>
-      <span class="nav-title">StremioFR Status</span>
-      <span class="nav-version">v1.0.0</span>
+    <div class="nav-brand">
+      <div class="nav-logo-box">📡</div>
+      <div class="nav-name">STREMIO<span>FR</span></div>
     </div>
-
-  </nav>
-
-  <!-- Hero -->
-  <div class="hero">
-    <h1>Statut <span>StremioFR</span></h1>
-    <p>Statut en temps réel des addons et instances de la communauté Stremio FR</p>
-    <div class="hero-links">
-      <a href="https://github.com/ninisq864/stremio-status-addonFR" class="hero-link" target="_blank">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+    <div class="nav-links">
+      <a href="https://github.com/ninisq864/stremio-status-addonFR" class="nav-link" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
         GitHub
       </a>
-      <a href="https://discord.gg/stremiofr" class="hero-link" target="_blank">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057.1 18.18.125 18.3.19 18.4a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+      <a href="https://discord.gg/stremiofr" class="nav-link" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057.1 18.08.114 18.1.135 18.115a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
         Discord
       </a>
-      <a href="https://uptime-kuma-production-7c44.up.railway.app/status/stremiofr-addons" class="hero-link" target="_blank">
-        📊 Status Page
-      </a>
     </div>
-  </div>
+  </nav>
 
-  <!-- Main -->
-  <div class="main">
-    <div id="content">
-      <div class="loading">
-        <div class="spinner"></div>
-        Chargement des instances...
+  <div class="hero">
+    <div class="hero-badge">Statut en temps réel</div>
+    <h1 class="hero-title">STATUT<span>DES ADDONS</span></h1>
+    <p class="hero-sub">Sélectionne tes instances préférées et installe l'addon directement dans Stremio.</p>
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-num" id="stat-total">—</span>
+        <span class="stat-label">Instances</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num" id="stat-online" style="color:#48bb78">—</span>
+        <span class="stat-label">En ligne</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num" id="stat-offline">—</span>
+        <span class="stat-label">Hors ligne</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num" id="stat-uptime">—</span>
+        <span class="stat-label">Uptime moyen</span>
       </div>
     </div>
   </div>
 
-  <!-- Install bar -->
+  <main>
+    <div class="section-header">
+      <div class="section-line"></div>
+      <div class="section-label">Choisir les instances</div>
+      <div class="section-line"></div>
+    </div>
+    <div id="content">
+      <div class="loading">
+        Chargement des instances
+        <span class="loading-dots"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+  </main>
+
   <div class="install-bar">
     <div class="install-info">
-      <strong id="count">0</strong> instance(s) sélectionnée(s) — Choisissez votre méthode d'installation :
+      <strong id="count">0</strong> instance(s) sélectionnée(s)
     </div>
     <div class="install-btns">
-      <button class="btn btn-orange" onclick="install('app')">📺 Installer (App)</button>
-      <button class="btn btn-outline" onclick="install('web')">🌐 Installer (Web)</button>
-      <button class="btn btn-outline" onclick="copyLink()">🔗 Copier</button>
+      <button class="btn btn-ghost" onclick="copyLink()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copier
+      </button>
+      <button class="btn btn-outline" onclick="install('web')">🌐 Web</button>
+      <button class="btn btn-red" onclick="install('app')">📺 Installer</button>
     </div>
   </div>
 
@@ -423,7 +354,6 @@
     const STATUS_SLUG = 'stremiofr-addons';
     const ADDON_URL = window.location.origin;
 
-    const SECTION_COLORS = ['orange','blue','green','purple','cyan'];
     const SECTION_ICONS = {
       'AIOStreams':    'https://raw.githubusercontent.com/Viren070/AIOStreams/main/packages/frontend/public/logo.png',
       'AIOMetadata':  'https://aiometadata.elfhosted.com/logo.png',
@@ -443,8 +373,7 @@
         ]);
         render(p.publicGroupList || [], h.heartbeatList || {});
       } catch(e) {
-        document.getElementById('content').innerHTML =
-          '<div class="loading">❌ Impossible de charger les données</div>';
+        document.getElementById('content').innerHTML = '<div class="loading">❌ Impossible de charger les données</div>';
       }
     }
 
@@ -455,36 +384,40 @@
 
     function render(groups, heartbeats) {
       allMonitors = [];
+      let totalUp = 0, totalDown = 0, uptimeSum = 0, uptimeCount = 0;
       let html = '';
 
-      groups.forEach((group, gi) => {
+      groups.forEach(group => {
         const name = group.name.replace(/\n/g,'').trim();
-        const color = SECTION_COLORS[gi % SECTION_COLORS.length];
-        const logo = SECTION_ICONS[name];
-        const upTotal = group.monitorList.filter(m => {
+        const logoKey = Object.keys(SECTION_ICONS).find(k => name.includes(k));
+        const logo = SECTION_ICONS[logoKey];
+        const upCount = group.monitorList.filter(m => {
           const last = (heartbeats[m.id]||[]).slice(-1)[0];
           return last && last.status === 1;
         }).length;
+        totalUp += upCount;
+        totalDown += group.monitorList.length - upCount;
 
         html += `
-        <div class="section-card">
-          <div class="section-head">
-            <div class="section-icon ${color}">
+        <div class="group-card">
+          <div class="group-head">
+            <div class="group-icon">
               ${logo ? `<img src="${logo}" onerror="this.parentElement.innerHTML='📡'">` : '📡'}
             </div>
-            <div class="section-head-info">
-              <div class="section-head-title">${name}</div>
-              <div class="section-head-sub">${upTotal}/${group.monitorList.length} en ligne</div>
+            <div class="group-info">
+              <div class="group-name">${name}</div>
+              <div class="group-count">${upCount}/${group.monitorList.length} en ligne</div>
             </div>
-            <button class="section-select-all" onclick="toggleGroup('${name}', this)">Tout sélectionner</button>
+            <button class="btn-select-all" onclick="toggleGroup('${name}', this)">Tout sélectionner</button>
           </div>
-          <div class="section-body">
+          <div class="group-body">
             ${group.monitorList.map(monitor => {
               const hbs = heartbeats[monitor.id] || [];
               const last = hbs.slice(-1)[0];
               const isUp = last && last.status === 1;
               const uptime = calcUptime(hbs);
               const uptimeClass = uptime >= 99 ? 'high' : uptime >= 95 ? 'mid' : 'low';
+              uptimeSum += uptime; uptimeCount++;
               allMonitors.push({ id: monitor.id, name: monitor.name, group: name });
               return `
               <div class="instance" id="inst-${monitor.id}" onclick="toggle(${monitor.id})">
@@ -493,8 +426,8 @@
                     <path d="M1 3.5L3 5.5L8 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
-                <span class="instance-name">${monitor.name}</span>
-                <span class="uptime ${uptimeClass}">${uptime}%</span>
+                <span class="inst-name">${monitor.name}</span>
+                <span class="inst-uptime ${uptimeClass}">${uptime}%</span>
                 <div class="status-dot ${isUp ? 'up' : 'down'}"></div>
               </div>`;
             }).join('')}
@@ -503,6 +436,10 @@
       });
 
       document.getElementById('content').innerHTML = html;
+      document.getElementById('stat-total').textContent = totalUp + totalDown;
+      document.getElementById('stat-online').textContent = totalUp;
+      document.getElementById('stat-offline').textContent = totalDown;
+      document.getElementById('stat-uptime').textContent = uptimeCount ? Math.round(uptimeSum/uptimeCount*10)/10 + '%' : '—';
     }
 
     function toggle(id) {
@@ -536,8 +473,7 @@
 
     function toast(msg) {
       const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
+      t.textContent = msg; t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2500);
     }
 
