@@ -484,18 +484,59 @@
     .pulse { animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-    /* HISTORIQUE */
-    .uptime-bar-row { display:flex; align-items:center; gap:12px; }
-    .uptime-bar-name { font-size:12px; font-weight:600; color:var(--text); min-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .uptime-bar-track { flex:1; height:10px; background:var(--surface2); border-radius:6px; overflow:hidden; position:relative; }
-    .uptime-bar-fill { height:100%; border-radius:6px; transition:width 0.5s; }
-    .uptime-bar-pct { font-size:12px; font-family:'Space Mono',monospace; font-weight:700; min-width:48px; text-align:right; }
-    .incident-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); font-size:12px; }
-    .incident-row:last-child { border-bottom:none; }
-    .incident-name { font-weight:700; color:var(--text); min-width:160px; }
-    .incident-time { color:var(--text2); font-family:'Space Mono',monospace; }
-    .incident-dur { color:var(--red); font-weight:700; font-family:'Space Mono',monospace; min-width:70px; text-align:right; }
-    .no-incidents { padding:24px; text-align:center; color:var(--muted); font-size:13px; }
+    /* MONITORS */
+    .monitor-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 18px; border-bottom: 1px solid var(--border);
+    }
+    .monitor-row:last-child { border-bottom: none; }
+    .monitor-name { font-size: 13px; font-weight: 600; color: var(--text); min-width: 160px; }
+    .monitor-url {
+      flex: 1;
+      background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px;
+      color: var(--text2); font-family: 'Space Mono', monospace; font-size: 11px;
+      transition: border-color 0.2s;
+    }
+    .monitor-url:focus { outline: none; border-color: var(--accent); }
+    .monitor-type {
+      font-size: 10px; color: var(--muted); background: var(--surface2);
+      padding: 3px 8px; border-radius: 4px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; min-width: 40px; text-align: center;
+    }
+    .monitor-status { font-size: 11px; font-weight: 700; min-width: 60px; text-align: center; }
+    .monitor-status.active { color: var(--green); }
+    .monitor-status.paused { color: #f59e0b; }
+    .btn-pause { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer; color: var(--text2); font-family: 'Outfit', sans-serif; transition: all 0.15s; }
+    .btn-pause:hover { border-color: #f59e0b; color: #f59e0b; }
+    .btn-pause.resume:hover { border-color: var(--green); color: var(--green); }
+    .btn-delete { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer; color: var(--text2); font-family: 'Outfit', sans-serif; transition: all 0.15s; }
+    .btn-delete:hover { border-color: var(--red); color: var(--red); }
+
+    /* ADD MONITOR FORM */
+    .add-monitor-form {
+      display: none; padding: 16px 18px;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      gap: 10px; flex-wrap: wrap; align-items: flex-end;
+    }
+    .add-monitor-form.open { display: flex; }
+    .form-field { display: flex; flex-direction: column; gap: 4px; }
+    .form-field label { font-size: 11px; color: var(--text2); font-weight: 600; }
+    .form-input {
+      background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 7px 10px;
+      color: var(--text); font-family: 'Outfit', sans-serif; font-size: 12px;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+    .kuma-status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; padding: 4px 10px;
+      border-radius: 6px; margin-bottom: 12px;
+    }
+    .kuma-status-badge.ok { background: rgba(34,197,94,0.1); color: var(--green); }
+    .kuma-status-badge.err { background: rgba(239,68,68,0.1); color: var(--red); }
   </style>
 </head>
 <body>
@@ -534,6 +575,7 @@
         <button class="nav-item active" onclick="showPage('stats', this)">📊 Statistiques</button>
         <button class="nav-item" onclick="showPage('instances', this)">🖥️ Instances</button>
         <button class="nav-item" onclick="showPage('history', this); renderHistory()">📈 Historique</button>
+        <button class="nav-item" onclick="showPage('monitors', this); loadMonitors()">🔧 Monitors</button>
         <div class="nav-section-label">Personnalisation</div>
         <button class="nav-item" onclick="showPage('logos', this)">🖼️ Logos</button>
         <button class="nav-item" onclick="showPage('settings', this)">⚙️ Paramètres</button>
@@ -579,24 +621,43 @@
         <div id="instances-by-group"></div>
       </div>
 
-      <!-- HISTORIQUE -->
-      <div class="page" id="page-history">
+      <!-- MONITORS -->
+      <div class="page" id="page-monitors">
         <div class="page-header">
-          <div class="page-title">Historique</div>
-          <div class="page-sub">Graphique d'uptime et incidents des dernières 24h</div>
+          <div class="page-title">Monitors Uptime Kuma</div>
+          <div class="page-sub">Gérez vos monitors directement depuis le dashboard</div>
         </div>
-        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-          <div class="stat-card"><div class="stat-label">Incidents (24h)</div><div class="stat-value red" id="hist-incidents">—</div></div>
-          <div class="stat-card"><div class="stat-label">Durée moy. incident</div><div class="stat-value orange" id="hist-avgdur">—</div></div>
-          <div class="stat-card"><div class="stat-label">Uptime global (24h)</div><div class="stat-value green" id="hist-uptime">—</div></div>
-        </div>
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-head"><span class="card-title">📈 Uptime par instance</span></div>
-          <div id="history-bars" style="padding:16px;display:flex;flex-direction:column;gap:12px;"></div>
-        </div>
+        <div id="kuma-status-wrap"></div>
         <div class="card">
-          <div class="card-head"><span class="card-title">🔴 Incidents détectés</span></div>
-          <div id="history-incidents"></div>
+          <div class="card-head">
+            <span class="card-title">🔧 Tous les monitors <span id="monitors-count" style="color:var(--muted);font-size:12px;font-weight:400"></span></span>
+            <button class="btn-add" onclick="toggleAddForm()">+ Ajouter</button>
+          </div>
+          <div class="add-monitor-form" id="add-monitor-form">
+            <div class="form-field">
+              <label>Nom</label>
+              <input class="form-input" id="new-monitor-name" placeholder="Mon Addon" style="width:160px">
+            </div>
+            <div class="form-field">
+              <label>URL</label>
+              <input class="form-input" id="new-monitor-url" placeholder="https://..." style="width:260px">
+            </div>
+            <div class="form-field">
+              <label>Type</label>
+              <select class="form-input" id="new-monitor-type" style="width:100px">
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+                <option value="ping">Ping</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Intervalle (s)</label>
+              <input class="form-input" id="new-monitor-interval" type="number" value="60" style="width:80px">
+            </div>
+            <button class="btn-save" onclick="addMonitor()" style="margin-top:18px">✅ Créer</button>
+            <button class="btn-cancel" onclick="toggleAddForm()" style="margin-top:18px">Annuler</button>
+          </div>
+          <div id="monitors-list"></div>
         </div>
       </div>
 
@@ -921,79 +982,114 @@
     toast('📋 Lien copié !');
   }
 
-  // ── HISTORIQUE ────────────────────────────────────────────────────────────
-  function renderHistory() {
-    if (!allData) return;
-    const { groups, heartbeats } = allData;
-    const cfg = currentConfig || {};
-    const customNames = cfg.customNames || {};
+  // ── MONITORS UPTIME KUMA ──────────────────────────────────────────────────
+  async function loadMonitors() {
+    document.getElementById('monitors-list').innerHTML = '<div style="padding:20px;color:var(--muted);text-align:center">Chargement...</div>';
 
-    let allUptimes = [], allIncidents = [], totalDur = 0;
-    let barsHtml = '', incidentsHtml = '';
+    // Statut connexion Kuma
+    try {
+      const statusRes = await fetch('/api/kuma/status', { headers: { 'x-admin-token': token } });
+      const status = await statusRes.json();
+      const badge = status.ready
+        ? `<div class="kuma-status-badge ok">✅ Connecté à Uptime Kuma — ${status.monitorsCount} monitors</div>`
+        : `<div class="kuma-status-badge err">❌ Non connecté à Uptime Kuma</div>`;
+      document.getElementById('kuma-status-wrap').innerHTML = badge;
 
-    groups.forEach(group => {
-      const groupName = group.name.replace(/\n/,'').trim();
-      group.monitorList.forEach(m => {
-        const hbs = heartbeats[m.id] || [];
-        if (!hbs.length) return;
-        const displayName = customNames[m.id] || m.name;
-        const uptime = Math.round(hbs.filter(h=>h.status===1).length / hbs.length * 10000) / 100;
-        allUptimes.push(uptime);
-        const color = uptime >= 99 ? 'var(--green)' : uptime >= 95 ? '#f59e0b' : 'var(--red)';
-
-        barsHtml += `<div class="uptime-bar-row">
-          <div class="uptime-bar-name" title="${displayName}">${displayName}</div>
-          <div class="uptime-bar-track"><div class="uptime-bar-fill" style="width:${uptime}%;background:${color}"></div></div>
-          <div class="uptime-bar-pct" style="color:${color}">${uptime}%</div>
-        </div>`;
-
-        // Détecter les incidents (séquences de status=0)
-        let inIncident = false, incidentStart = null;
-        hbs.forEach((hb, i) => {
-          const t = new Date(hb.time || hb.createdAt);
-          if (hb.status === 0 && !inIncident) {
-            inIncident = true; incidentStart = t;
-          } else if (hb.status === 1 && inIncident) {
-            inIncident = false;
-            const dur = Math.round((t - incidentStart) / 60000);
-            totalDur += dur;
-            allIncidents.push({ name: displayName, group: groupName, start: incidentStart, dur });
-          }
-        });
-        if (inIncident && incidentStart) {
-          const dur = Math.round((Date.now() - incidentStart) / 60000);
-          totalDur += dur;
-          allIncidents.push({ name: displayName, group: groupName, start: incidentStart, dur, ongoing: true });
-        }
-      });
-    });
-
-    // Trier par date décroissante
-    allIncidents.sort((a,b) => b.start - a.start);
-
-    if (allIncidents.length === 0) {
-      incidentsHtml = '<div class="no-incidents">✅ Aucun incident détecté sur la période</div>';
-    } else {
-      allIncidents.forEach(inc => {
-        const dateStr = inc.start.toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-        incidentsHtml += `<div class="incident-row">
-          <div class="dot down"></div>
-          <div class="incident-name">${inc.name}</div>
-          <div class="incident-time">${dateStr}${inc.ongoing ? ' <span style="color:var(--red)">● en cours</span>' : ''}</div>
-          <div class="incident-dur">${inc.dur < 60 ? inc.dur+'min' : Math.round(inc.dur/60*10)/10+'h'}</div>
-        </div>`;
-      });
+      if (!status.ready) {
+        document.getElementById('monitors-list').innerHTML = '<div style="padding:20px;color:var(--muted);text-align:center">⚠️ Connexion Uptime Kuma non disponible</div>';
+        return;
+      }
+    } catch(e) {
+      document.getElementById('kuma-status-wrap').innerHTML = '<div class="kuma-status-badge err">❌ Erreur connexion</div>';
+      return;
     }
 
-    const avgUptime = allUptimes.length ? Math.round(allUptimes.reduce((a,b)=>a+b,0)/allUptimes.length*100)/100 : 0;
-    const avgDur = allIncidents.length ? Math.round(totalDur / allIncidents.length) : 0;
+    // Liste monitors
+    try {
+      const res = await fetch('/api/kuma/monitors', { headers: { 'x-admin-token': token } });
+      const { monitors } = await res.json();
+      document.getElementById('monitors-count').textContent = `(${monitors.length})`;
 
-    document.getElementById('hist-incidents').textContent = allIncidents.length;
-    document.getElementById('hist-avgdur').textContent = avgDur ? (avgDur < 60 ? avgDur+'min' : Math.round(avgDur/60*10)/10+'h') : '—';
-    document.getElementById('hist-uptime').textContent = avgUptime + '%';
-    document.getElementById('hist-uptime').style.color = avgUptime >= 99 ? 'var(--green)' : avgUptime >= 95 ? '#f59e0b' : 'var(--red)';
-    document.getElementById('history-bars').innerHTML = barsHtml || '<div style="padding:16px;color:var(--muted)">Aucune donnée</div>';
-    document.getElementById('history-incidents').innerHTML = incidentsHtml;
+      let html = '';
+      monitors.sort((a,b) => a.name.localeCompare(b.name)).forEach(m => {
+        html += `<div class="monitor-row" id="mrow-${m.id}">
+          <div class="dot ${m.active ? 'up' : 'down'}"></div>
+          <div class="monitor-name">${m.name}</div>
+          <input class="monitor-url" value="${m.url}" id="murl-${m.id}" placeholder="https://...">
+          <span class="monitor-type">${m.type}</span>
+          <span class="monitor-status ${m.active ? 'active' : 'paused'}">${m.active ? '▶ Actif' : '⏸ Pausé'}</span>
+          <button class="action-btn" onclick="saveMonitorUrl(${m.id})">💾 Sauv.</button>
+          <button class="btn-pause ${!m.active ? 'resume' : ''}" onclick="toggleMonitor(${m.id}, ${m.active})">
+            ${m.active ? '⏸ Pause' : '▶ Reprendre'}
+          </button>
+          <button class="btn-delete" onclick="deleteMonitor(${m.id}, '${m.name.replace(/'/g, "\\'")}')">🗑️</button>
+        </div>`;
+      });
+      document.getElementById('monitors-list').innerHTML = html || '<div style="padding:20px;color:var(--muted);text-align:center">Aucun monitor</div>';
+    } catch(e) {
+      document.getElementById('monitors-list').innerHTML = `<div style="padding:20px;color:var(--red);text-align:center">❌ ${e.message}</div>`;
+    }
+  }
+
+  async function saveMonitorUrl(id) {
+    const url = document.getElementById(`murl-${id}`).value.trim();
+    if (!url) return toast('❌ URL vide');
+    try {
+      const res = await fetch(`/api/kuma/monitors/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ url })
+      });
+      if (res.ok) toast('✅ URL mise à jour !');
+      else toast('❌ Erreur lors de la mise à jour');
+    } catch(e) { toast('❌ ' + e.message); }
+  }
+
+  async function toggleMonitor(id, isActive) {
+    const endpoint = isActive ? 'pause' : 'resume';
+    try {
+      await fetch(`/api/kuma/monitors/${id}/${endpoint}`, { method: 'POST', headers: { 'x-admin-token': token } });
+      toast(isActive ? '⏸ Monitor mis en pause' : '▶ Monitor repris');
+      setTimeout(loadMonitors, 800);
+    } catch(e) { toast('❌ ' + e.message); }
+  }
+
+  async function deleteMonitor(id, name) {
+    if (!confirm(`Supprimer le monitor "${name}" ? Cette action est irréversible.`)) return;
+    try {
+      await fetch(`/api/kuma/monitors/${id}`, { method: 'DELETE', headers: { 'x-admin-token': token } });
+      toast(`🗑️ Monitor "${name}" supprimé`);
+      document.getElementById(`mrow-${id}`)?.remove();
+    } catch(e) { toast('❌ ' + e.message); }
+  }
+
+  function toggleAddForm() {
+    document.getElementById('add-monitor-form').classList.toggle('open');
+  }
+
+  async function addMonitor() {
+    const name = document.getElementById('new-monitor-name').value.trim();
+    const url = document.getElementById('new-monitor-url').value.trim();
+    const type = document.getElementById('new-monitor-type').value;
+    const interval = parseInt(document.getElementById('new-monitor-interval').value) || 60;
+    if (!name || !url) return toast('❌ Nom et URL requis');
+    try {
+      const res = await fetch('/api/kuma/monitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ name, url, type, interval })
+      });
+      if (res.ok) {
+        toast('✅ Monitor créé !');
+        toggleAddForm();
+        document.getElementById('new-monitor-name').value = '';
+        document.getElementById('new-monitor-url').value = '';
+        setTimeout(loadMonitors, 1000);
+      } else {
+        const err = await res.json();
+        toast('❌ ' + (err.error || 'Erreur'));
+      }
+    } catch(e) { toast('❌ ' + e.message); }
   }
 
   // ── CACHE ─────────────────────────────────────────────────────────────────
