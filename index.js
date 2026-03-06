@@ -228,37 +228,61 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
+// ── DÉCODAGE CONFIG UTILISATEUR ────────────────────────────────────────────────
+function decodeUserConfig(encoded) {
+  if (!encoded || encoded === 'default') return null;
+  try {
+    return JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
+  } catch(e) { return null; }
+}
+
+function buildCatalog(groups, heartbeats, cfg, userCfg) {
+  const metas = [];
+  for (const group of groups) {
+    const cleanName = group.name.replace(/\n/g, '').trim();
+    // Filtrage par groupe si config utilisateur
+    if (userCfg && userCfg.groups && userCfg.groups.length > 0) {
+      if (!userCfg.groups.includes(cleanName)) continue;
+    }
+    const posterKey = Object.keys(cfg.groupPosters).find(k => cleanName.toLowerCase().includes(k.toLowerCase()));
+    const groupPoster = cfg.groupPosters[posterKey] || cfg.defaultPoster;
+    for (const monitor of group.monitorList) {
+      if (cfg.hiddenMonitors.includes(monitor.id)) continue;
+      // Filtrage par monitor si config utilisateur
+      if (userCfg && userCfg.monitors && userCfg.monitors.length > 0) {
+        if (!userCfg.monitors.includes(monitor.id)) continue;
+      }
+      const hbs = heartbeats[monitor.id] || [];
+      const last = hbs[hbs.length - 1];
+      const isUp = last ? last.status === 1 : false;
+      const uptime = hbs.length ? Math.round(hbs.filter(h => h.status === 1).length / hbs.length * 10000) / 100 : 0;
+      const displayName = cfg.customNames?.[monitor.id] || monitor.name;
+      metas.push({
+        id: `status-${monitor.id}`,
+        type: 'other',
+        name: `${isUp ? '✅' : '❌'} ${displayName}`,
+        poster: groupPoster,
+        background: groupPoster,
+        description: `Groupe: ${cleanName}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}\nUptime: ${uptime}%`,
+        genres: [cleanName],
+      });
+    }
+  }
+  return metas;
+}
+
 builder.defineCatalogHandler(async ({ extra }) => {
   try {
     const { groups, heartbeats } = await getUptimeData();
     const cfg = loadConfig();
-    const metas = [];
-    for (const group of groups) {
-      const cleanName = group.name.replace(/\n/g, '').trim();
-      const posterKey = Object.keys(cfg.groupPosters).find(k => cleanName.toLowerCase().includes(k.toLowerCase()));
-      const groupPoster = cfg.groupPosters[posterKey] || cfg.defaultPoster;
-      for (const monitor of group.monitorList) {
-        if (cfg.hiddenMonitors.includes(monitor.id)) continue;
-        if (extra?.genre && extra.genre !== cleanName) continue;
-        const searchQuery = extra?.search?.toLowerCase();
-        const displayName = cfg.customNames?.[monitor.id] || monitor.name;
-        if (searchQuery && !displayName.toLowerCase().includes(searchQuery) && !cleanName.toLowerCase().includes(searchQuery)) continue;
-        const hbs = heartbeats[monitor.id] || [];
-        const last = hbs[hbs.length - 1];
-        const isUp = last ? last.status === 1 : false;
-        const uptime = hbs.length ? Math.round(hbs.filter(h => h.status === 1).length / hbs.length * 10000) / 100 : 0;
-        metas.push({
-          id: `status-${monitor.id}`,
-          type: 'other',
-          name: `${isUp ? '✅' : '❌'} ${displayName}`,
-          poster: groupPoster,
-          background: groupPoster,
-          description: `Groupe: ${cleanName}\nStatut: ${isUp ? 'En ligne 🟢' : 'Hors ligne 🔴'}\nUptime: ${uptime}%`,
-          genres: [cleanName],
-        });
-      }
-    }
-    return { metas };
+    const metas = buildCatalog(groups, heartbeats, cfg, null);
+    const searchQuery = extra?.search?.toLowerCase();
+    const filtered = metas.filter(m => {
+      if (extra?.genre && !m.genres.includes(extra.genre)) return false;
+      if (searchQuery && !m.name.toLowerCase().includes(searchQuery)) return false;
+      return true;
+    });
+    return { metas: filtered };
   } catch (e) {
     console.error('Erreur API:', e.message);
     return { metas: [] };
@@ -294,6 +318,39 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => res.redirect('/configure'));
 app.get('/configure', (req, res) => res.sendFile(path.join(__dirname, 'configure.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+
+// Route manifest personnalisé
+app.get('/:userConfig/manifest.json', (req, res) => {
+  const userCfg = decodeUserConfig(req.params.userConfig);
+  const cfg = loadConfig();
+  const personalManifest = {
+    ...manifest,
+    id: `fr.stremio.status.${req.params.userConfig.slice(0, 8)}`,
+    name: '📡 Stremio FR - Statut Des Addons',
+    behaviorHints: { configurable: true, configurationRequired: false },
+  };
+  res.json(personalManifest);
+});
+
+// Route catalog personnalisé
+app.get('/:userConfig/catalog/:type/:id.json', async (req, res) => {
+  try {
+    const userCfg = decodeUserConfig(req.params.userConfig);
+    const { groups, heartbeats } = await getUptimeData();
+    const cfg = loadConfig();
+    let metas = buildCatalog(groups, heartbeats, cfg, userCfg);
+    // Filtres extra
+    const extra = {};
+    if (req.query.genre) extra.genre = req.query.genre;
+    if (req.query.search) extra.search = req.query.search.toLowerCase();
+    if (extra.genre) metas = metas.filter(m => m.genres.includes(extra.genre));
+    if (extra.search) metas = metas.filter(m => m.name.toLowerCase().includes(extra.search));
+    res.json({ metas });
+  } catch(e) {
+    console.error('Erreur catalog perso:', e.message);
+    res.json({ metas: [] });
+  }
+});
 
 app.post('/api/login', async (req, res) => {
   const ip = req.ip;
