@@ -626,6 +626,9 @@
           <div class="page-sub">Modifiez les noms, URLs, masquez, mettez en pause ou supprimez vos monitors</div>
         </div>
         <div id="kuma-status-wrap"></div>
+        <div style="margin-bottom:12px;display:flex;justify-content:flex-end">
+          <button class="btn-add" onclick="syncAllFromKuma()" style="background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.3)">🔄 Synchroniser tout depuis Kuma</button>
+        </div>
         <div class="card" style="margin-bottom:12px">
           <div class="card-head">
             <span class="card-title">➕ Ajouter</span>
@@ -1232,7 +1235,36 @@
     } catch(e) { toast('❌ ' + e.message); }
   }
 
-  // ── DRAG & DROP ───────────────────────────────────────────────────────────
+  async function syncAllFromKuma() {
+    try {
+      toast('🔄 Synchronisation en cours...');
+      const res = await fetch('/api/kuma/monitors', { headers: { 'x-admin-token': token } });
+      const { monitors } = await res.json();
+      if (!monitors || !monitors.length) { toast('❌ Aucun monitor Kuma'); return; }
+
+      const cfg = { ...currentConfig };
+      if (!cfg.customLinks) cfg.customLinks = {};
+      if (!cfg.customNames) cfg.customNames = {};
+
+      monitors.forEach(m => {
+        // Sauvegarder l'URL si pas déjà un lien custom
+        if (m.url && !cfg.customLinks[m.id]) {
+          cfg.customLinks[m.id] = m.url;
+        }
+        // Sauvegarder le nom si pas déjà un nom custom
+        if (m.name && !cfg.customNames[m.id]) {
+          cfg.customNames[m.id] = m.name;
+        }
+      });
+
+      await saveConfig(cfg);
+      currentConfig = cfg;
+      toast(`✅ ${monitors.length} instances synchronisées dans la config !`);
+      loadInstancesWithKuma();
+    } catch(e) {
+      toast('❌ Erreur synchronisation: ' + e.message);
+    }
+  }
   let dragSrcGroup = null;
   let dragSrcRow = null;
 
