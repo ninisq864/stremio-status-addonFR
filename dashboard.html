@@ -584,7 +584,7 @@
         <button class="nav-item" onclick="showPage('instances', this); loadInstancesWithKuma()">🖥️ Instances</button>
         <button class="nav-item" onclick="showPage('history', this); renderHistory()">📈 Historique</button>
         <div class="nav-section-label">Personnalisation</div>
-        <button class="nav-item" onclick="showPage('logos', this)">🖼️ Logos</button>
+        <button class="nav-item" onclick="showPage('logos', this); renderLogos()">🖼️ Logos</button>
         <button class="nav-item" onclick="showPage('settings', this); initSettings()">⚙️ Paramètres</button>
       </div>
 
@@ -813,10 +813,17 @@
   }
 
   async function loadConfig() {
-    const res = await fetch('/api/config', { headers: { 'x-admin-token': token } });
-    currentConfig = await res.json();
-    renderLogos();
-    if (currentConfig.cacheTTL) document.getElementById('setting-ttl').value = currentConfig.cacheTTL;
+    try {
+      const res = await fetch('/api/config', { headers: { 'x-admin-token': token } });
+      if (!res.ok) throw new Error('Config non disponible');
+      currentConfig = await res.json();
+      renderLogos();
+      if (currentConfig.cacheTTL) document.getElementById('setting-ttl').value = currentConfig.cacheTTL;
+    } catch(e) {
+      console.error('❌ Erreur chargement config:', e.message);
+      // Retry après 1s
+      setTimeout(loadConfig, 1000);
+    }
   }
 
   function updateCacheAge() {
