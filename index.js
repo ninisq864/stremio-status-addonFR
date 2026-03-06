@@ -330,11 +330,16 @@ app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard
 app.get('/:userConfig/manifest.json', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
-  const userCfg = decodeUserConfig(req.params.userConfig);
+  const uc = req.params.userConfig;
   const personalManifest = {
-    ...manifest,
-    id: `fr.stremio.status.${req.params.userConfig.slice(0, 8)}`,
+    id: `fr.stremio.status.${uc.slice(0, 12)}`,
+    version: manifest.version,
     name: '📡 Stremio FR - Statut Des Addons',
+    description: 'Statut en temps réel des addons et instances Stremio FR',
+    logo: manifest.logo,
+    catalogs: [{ type: 'other', id: `stremio-status-${uc.slice(0, 12)}`, name: '📡 Statut des Addons', extra: [{ name: 'search', isRequired: false }, { name: 'genre', isRequired: false }], extraSupported: ['search', 'genre'] }],
+    resources: ['catalog'],
+    types: ['other'],
     behaviorHints: { configurable: true, configurationRequired: false },
   };
   res.json(personalManifest);
