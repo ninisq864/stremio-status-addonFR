@@ -116,7 +116,7 @@
 
     .stats-bar {
       display: flex; justify-content: center;
-      margin: 48px auto 0; max-width: 520px;
+      margin: 28px auto 0; max-width: 520px;
       background: var(--bg2); border: 1px solid var(--border);
       border-radius: 14px; overflow: hidden;
     }
@@ -143,13 +143,29 @@
 
     .section-header {
       display: flex; align-items: center; gap: 12px;
-      margin-bottom: 20px; margin-top: 48px;
+      margin-bottom: 16px; margin-top: 28px;
     }
     .section-line { flex: 1; height: 1px; background: var(--border); }
     .section-label {
       font-size: 11px; color: var(--muted);
       text-transform: uppercase; letter-spacing: 2px; white-space: nowrap;
     }
+
+    .section-actions {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .hint-text {
+      font-size: 12px; color: var(--muted);
+      font-style: italic;
+    }
+    .btn-global-select {
+      font-size: 12px; color: var(--muted); background: transparent;
+      border: 1px solid var(--border); border-radius: 7px;
+      padding: 5px 12px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: all 0.15s;
+    }
+    .btn-global-select:hover { color: var(--text); background: var(--bg3); }
 
     #content { display: flex; flex-direction: column; gap: 12px; }
 
@@ -358,6 +374,10 @@
       <div class="section-label">Choisir les instances</div>
       <div class="section-line"></div>
     </div>
+    <div class="section-actions">
+      <span class="hint-text">💡 Aucune sélection = tout installer</span>
+      <button class="btn-global-select" id="btn-global" onclick="toggleAll()">Tout sélectionner</button>
+    </div>
     <div id="content">
       <div class="loading">
         Chargement des instances
@@ -457,6 +477,8 @@
               const hbs = heartbeats[monitor.id] || [];
               const last = hbs.slice(-1)[0];
               const isUp = last && last.status === 1;
+              const uptime = hbs.length ? Math.round(hbs.filter(h=>h.status===1).length/hbs.length*1000)/10 : 0;
+              const uptimeColor = uptime >= 99 ? '#48bb78' : uptime >= 95 ? '#f6ad55' : '#e53e3e';
               allMonitors.push({ id: monitor.id, name: monitor.name, group: name });
               return `
               <div class="instance" id="inst-${monitor.id}" onclick="toggle(${monitor.id})">
@@ -480,7 +502,16 @@
       document.getElementById('stat-offline').textContent = totalDown;
     }
 
-    function updateBar() {
+    function toggleAll() {
+      const allSelected = allMonitors.every(m => selected.has(m.id));
+      allMonitors.forEach(m => {
+        const el = document.getElementById(`inst-${m.id}`);
+        if (allSelected) { selected.delete(m.id); el?.classList.remove('selected'); }
+        else { selected.add(m.id); el?.classList.add('selected'); }
+      });
+      document.getElementById('btn-global').textContent = allSelected ? 'Tout sélectionner' : 'Tout désélectionner';
+      updateBar();
+    }
       const count = selected.size;
       document.getElementById('count').textContent = count;
       const bar = document.getElementById('install-bar');
