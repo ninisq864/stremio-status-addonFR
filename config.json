@@ -8,12 +8,8 @@
     "Wastream": "https://wastream.striho.top/static/wastream-logo.png"
   },
   "hiddenMonitors": [],
-  "customNames": {
-    "23": "WAStream"
-  },
-  "customLinks": {
-    "23": ""
-  },
-  "defaultPoster": "https://i.imgur.com/8yPVxJJ.png",
+  "customNames": {},
+  "customLinks": {},
+  "defaultPoster": "https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png",
   "cacheTTL": 30
 }
