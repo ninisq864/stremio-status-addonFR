@@ -8,8 +8,12 @@
     "Wastream": "https://wastream.striho.top/static/wastream-logo.png"
   },
   "hiddenMonitors": [],
-  "customNames": {},
-  "customLinks": {},
+  "customNames": {
+    "23": "WAStream"
+  },
+  "customLinks": {
+    "23": ""
+  },
   "defaultPoster": "https://i.imgur.com/8yPVxJJ.png",
   "cacheTTL": 30
 }
