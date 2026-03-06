@@ -788,7 +788,7 @@
     const res = await fetch('/api/data');
     allData = await res.json();
     renderStats();
-    renderInstances();
+    renderInstances({});
     updateCacheAge();
   }
 
@@ -843,7 +843,7 @@
 
   // ── INSTANCES ─────────────────────────────────────────────────────────────
   async function loadInstancesWithKuma() {
-    // Charger statut Kuma
+    let kumaData = {};
     try {
       const statusRes = await fetch('/api/kuma/status', { headers: { 'x-admin-token': token } });
       const status = await statusRes.json();
@@ -851,13 +851,18 @@
         ? `<div class="kuma-status-badge ok">✅ Connecté à Uptime Kuma — ${status.monitorsCount} monitors</div>`
         : `<div class="kuma-status-badge err">⚠️ Uptime Kuma non connecté — certaines fonctions désactivées</div>`;
       document.getElementById('kuma-status-wrap').innerHTML = badge;
+      if (status.ready) {
+        const monitorsRes = await fetch('/api/kuma/monitors', { headers: { 'x-admin-token': token } });
+        const { monitors } = await monitorsRes.json();
+        monitors.forEach(m => { kumaData[m.id] = m; });
+      }
     } catch(e) {
       document.getElementById('kuma-status-wrap').innerHTML = '';
     }
-    renderInstances();
+    renderInstances(kumaData);
   }
 
-  function renderInstances() {
+  function renderInstances(kumaData = {}) {
     if (!allData || !currentConfig) return;
     const { groups, heartbeats } = allData;
     const hidden = currentConfig.hiddenMonitors || [];
@@ -884,7 +889,7 @@
         const isUp = last && last.status === 1;
         const isHidden = hidden.includes(m.id);
         const displayName = customNames[m.id] || m.name;
-        const link = customLinks[m.id] || '';
+        const link = customLinks[m.id] || kumaData[m.id]?.url || '';
 
         html += `<div class="row" id="row-${m.id}" draggable="true" data-mid="${m.id}" data-gname="${name}" ondragstart="dragStartRow(event,this)" ondragover="dragOverRow(event)" ondrop="dropRow(event,this)" ondragleave="this.classList.remove('drag-over')" style="${isHidden?'opacity:0.4':''}">
           <span class="drag-handle" title="Glisser pour réordonner">⠿</span>
