@@ -346,9 +346,11 @@ app.get('/:userConfig/catalog/:type/:id.json', async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', '*');
   try {
     const userCfg = decodeUserConfig(req.params.userConfig);
+    console.log('🎯 Catalog perso appelé, userCfg:', JSON.stringify(userCfg));
     const { groups, heartbeats } = await getUptimeData();
     const cfg = loadConfig();
     let metas = buildCatalog(groups, heartbeats, cfg, userCfg);
+    console.log(`📦 Metas générés: ${metas.length}`);
     if (req.query.genre) metas = metas.filter(m => m.genres.includes(req.query.genre));
     if (req.query.search) metas = metas.filter(m => m.name.toLowerCase().includes(req.query.search.toLowerCase()));
     res.json({ metas });
