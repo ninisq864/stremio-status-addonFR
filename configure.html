@@ -454,13 +454,12 @@
     }
 
     function getManifestUrl() {
-      // Si rien sélectionné → manifest par défaut (tout afficher)
       if (selected.size === 0) return `${ADDON_URL}/manifest.json`;
-      // Construire la config utilisateur
       const monitors = [...selected];
       const groups = [...new Set(allMonitors.filter(m => selected.has(m.id)).map(m => m.group))];
-      const userCfg = { monitors, groups };
-      const encoded = btoa(JSON.stringify(userCfg));
+      // Encodage compact : juste les IDs séparés par virgule + groupes
+      const userCfg = { m: monitors, g: groups };
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(userCfg))));
       return `${ADDON_URL}/${encoded}/manifest.json`;
     }
 

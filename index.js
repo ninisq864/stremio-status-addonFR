@@ -232,7 +232,12 @@ const builder = new addonBuilder(manifest);
 function decodeUserConfig(encoded) {
   if (!encoded || encoded === 'default') return null;
   try {
-    return JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
+    const raw = JSON.parse(decodeURIComponent(escape(Buffer.from(encoded, 'base64').toString('utf8'))));
+    // Support format compact {m, g} et format long {monitors, groups}
+    return {
+      monitors: raw.m || raw.monitors || [],
+      groups: raw.g || raw.groups || []
+    };
   } catch(e) { return null; }
 }
 
