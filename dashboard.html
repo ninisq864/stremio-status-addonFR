@@ -585,7 +585,7 @@
         <button class="nav-item" onclick="showPage('history', this); renderHistory()">📈 Historique</button>
         <div class="nav-section-label">Personnalisation</div>
         <button class="nav-item" onclick="showPage('logos', this)">🖼️ Logos</button>
-        <button class="nav-item" onclick="showPage('settings', this)">⚙️ Paramètres</button>
+        <button class="nav-item" onclick="showPage('settings', this); initSettings()">⚙️ Paramètres</button>
       </div>
 
       <div class="sidebar-bottom">
@@ -716,11 +716,15 @@
           </div>
           <div class="setting-item">
             <div class="setting-info">
-              <div class="setting-label">Lien d'installation</div>
-              <div class="setting-desc">Copiez le lien manifest pour partager l'addon</div>
+              <div class="setting-label">🔗 Lien d'installation</div>
+              <div class="setting-desc">URL manifest à partager pour installer l'addon dans Stremio</div>
             </div>
-            <div class="setting-control">
-              <button class="btn-save" onclick="copyManifest()">📋 Copier le lien</button>
+            <div class="setting-control" style="flex-direction:column;align-items:flex-start;gap:8px">
+              <div style="display:flex;gap:8px;width:100%">
+                <input type="text" class="setting-input" id="manifest-url-display" readonly style="flex:1;font-family:monospace;font-size:11px;color:var(--text2)" value="Chargement...">
+                <button class="btn-save" onclick="copyManifest()">📋 Copier</button>
+              </div>
+              <a id="manifest-stremio-link" href="#" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">▶ Ouvrir dans Stremio</a>
             </div>
           </div>
         </div>
@@ -1013,9 +1017,31 @@
     setTimeout(logout, 2000);
   }
 
+  function initSettings() {
+    const base = window.location.origin;
+    const manifestUrl = `${base}/manifest.json`;
+    const stremioUrl = `stremio://${base.replace(/^https?:\/\//, '')}/manifest.json`;
+    const el = document.getElementById('manifest-url-display');
+    const link = document.getElementById('manifest-stremio-link');
+    if (el) el.value = manifestUrl;
+    if (link) link.href = stremioUrl;
+    // Charger webhook sortant depuis config
+    const webhookEl = document.getElementById('setting-webhook');
+    if (webhookEl && currentConfig?.webhookOut) webhookEl.value = currentConfig.webhookOut;
+  }
+
   function copyManifest() {
-    navigator.clipboard.writeText(`${window.location.origin}/manifest.json`);
+    const url = document.getElementById('manifest-url-display')?.value || `${window.location.origin}/manifest.json`;
+    navigator.clipboard.writeText(url);
     toast('📋 Lien copié !');
+  }
+
+  async function saveWebhookOut() {
+    const url = document.getElementById('setting-webhook').value.trim();
+    const cfg = { ...currentConfig, webhookOut: url };
+    await saveConfig(cfg);
+    currentConfig = cfg;
+    toast(url ? '✅ Webhook sortant sauvegardé' : '✅ Webhook sortant supprimé');
   }
 
   // ── MONITORS UPTIME KUMA ──────────────────────────────────────────────────
