@@ -221,7 +221,7 @@ const manifest = {
   version: '1.0.0',
   name: '📡 Stremio FR - Statut Des Addons',
   description: 'Statut en temps réel des addons et instances Stremio FR',
-  logo: 'https://i.imgur.com/8yPVxJJ.png',
+  logo: 'https://em-content.zobj.net/source/twitter/376/satellite-antenna_1f4e1.png',
   catalogs: [{ type: 'other', id: 'stremio-status', name: '📡 Statut des Addons', extra: [{ name: 'search', isRequired: false }, { name: 'genre', isRequired: false }], extraSupported: ['search', 'genre'] }],
   resources: ['catalog'],
   types: ['other'],
