@@ -377,6 +377,12 @@ app.get('/api/data', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Route config publique (logos uniquement, sans données sensibles)
+app.get('/api/config/public', (req, res) => {
+  const cfg = loadConfig();
+  res.json({ groupPosters: cfg.groupPosters, defaultPoster: cfg.defaultPoster });
+});
+
 app.get('/api/config', authMiddleware, (req, res) => res.json(loadConfig()));
 app.post('/api/config', authMiddleware, async (req, res) => {
   const cfg = { ...loadConfig(), ...req.body };

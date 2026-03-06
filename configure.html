@@ -361,7 +361,7 @@
       try {
         const [data, cfgData] = await Promise.all([
           fetch('/api/data').then(r => r.json()),
-          fetch('/api/config').then(r => r.json()).catch(() => ({}))
+          fetch('/api/config/public').then(r => r.json()).catch(() => ({}))
         ]);
         if (cfgData.groupPosters) groupPosters = cfgData.groupPosters;
         if (cfgData.defaultPoster) defaultPoster = cfgData.defaultPoster;
