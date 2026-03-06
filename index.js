@@ -52,6 +52,7 @@ const DEFAULT_CONFIG = {
 };
 
 let config = { ...DEFAULT_CONFIG };
+function loadConfig() { return config; }
 let githubFileSha = null;
 
 async function loadConfigFromGithub() {
