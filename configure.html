@@ -215,34 +215,76 @@
 
     .install-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-      padding: 16px 32px;
-      background: rgba(10,10,11,0.95);
+      padding: 14px 32px;
+      background: rgba(10,10,11,0.97);
       backdrop-filter: blur(20px);
       border-top: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      transition: all 0.3s;
     }
 
-    .install-info { font-size: 14px; color: var(--muted); }
+    .install-bar.has-selection {
+      border-top-color: rgba(229,62,62,0.4);
+      box-shadow: 0 -4px 30px rgba(229,62,62,0.08);
+    }
+
+    .install-info { font-size: 13px; color: var(--muted); min-width: 0; }
     .install-info strong {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 22px; color: var(--red); letter-spacing: 1px;
     }
 
-    .install-btns { display: flex; gap: 8px; }
+    .install-summary {
+      font-size: 11px; color: var(--muted); margin-top: 1px;
+      opacity: 0; transition: opacity 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .install-summary.visible { opacity: 1; }
+
+    .install-btns { display: flex; gap: 8px; flex-shrink: 0; }
 
     .btn {
       display: flex; align-items: center; gap: 7px;
       padding: 10px 20px; border-radius: 9px;
       font-size: 13px; font-weight: 500;
       font-family: 'DM Sans', sans-serif;
-      cursor: pointer; border: none; transition: all 0.15s;
+      cursor: pointer; border: none; transition: all 0.2s;
     }
-    .btn-red { background: var(--red); color: #fff; }
-    .btn-red:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-red {
+      background: var(--red); color: #fff;
+      box-shadow: 0 0 0 rgba(229,62,62,0);
+      transition: all 0.2s;
+    }
+    .btn-red:hover { background: var(--red-dark); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(229,62,62,0.4); }
+    .btn-red.pulse { animation: btnPulse 1.5s ease-in-out 1; }
+    @keyframes btnPulse {
+      0% { box-shadow: 0 0 0 0 rgba(229,62,62,0.6); }
+      50% { box-shadow: 0 0 0 10px rgba(229,62,62,0); }
+      100% { box-shadow: 0 0 0 0 rgba(229,62,62,0); }
+    }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-outline:hover { background: var(--bg3); transform: translateY(-1px); }
     .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 10px 14px; }
     .btn-ghost:hover { color: var(--text); background: var(--bg3); }
+
+    /* ── MOBILE ─────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hero { padding: 60px 20px 30px; }
+      .hero-title { font-size: clamp(48px, 14vw, 80px); }
+      .hero-subtitle { font-size: clamp(36px, 11vw, 60px); }
+      .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 16px; }
+      .stat-num { font-size: 28px; }
+      main { padding: 0 12px 120px; }
+      .group-card { border-radius: 12px; }
+      .group-head { padding: 14px 16px; flex-wrap: wrap; gap: 8px; }
+      .group-body { padding: 0 10px 10px; gap: 6px; }
+      .instance { padding: 10px 12px; }
+      .inst-status { display: none; }
+      .install-bar { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+      .install-btns { width: 100%; justify-content: stretch; }
+      .install-btns .btn { flex: 1; justify-content: center; }
+      .btn-ghost { flex: 0 0 auto !important; }
+      nav { padding: 0 16px; }
+    }
 
     .loading { text-align: center; padding: 60px 0; color: var(--muted); font-size: 14px; }
     .loading-dots { display: inline-flex; gap: 4px; margin-left: 8px; }
@@ -323,12 +365,13 @@
     </div>
   </main>
 
-  <div class="install-bar">
+  <div class="install-bar" id="install-bar">
     <div class="install-info">
-      <strong id="count">0</strong> instance(s) sélectionnée(s)
+      <div><strong id="count">0</strong> instance(s) sélectionnée(s)</div>
+      <div class="install-summary" id="install-summary"></div>
     </div>
     <div class="install-btns">
-      <button class="btn btn-red" onclick="install('app')">📺 Installer</button>
+      <button class="btn btn-red" id="btn-install" onclick="install('app')">📺 Installer</button>
       <button class="btn btn-outline" onclick="install('web')">🌐 Web</button>
       <button class="btn btn-ghost" onclick="copyLink()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -436,11 +479,31 @@
       document.getElementById('stat-offline').textContent = totalDown;
     }
 
+    function updateBar() {
+      const count = selected.size;
+      document.getElementById('count').textContent = count;
+      const bar = document.getElementById('install-bar');
+      const summary = document.getElementById('install-summary');
+      const btn = document.getElementById('btn-install');
+      if (count > 0) {
+        bar.classList.add('has-selection');
+        const groups = [...new Set(allMonitors.filter(m => selected.has(m.id)).map(m => m.group))];
+        summary.textContent = groups.join(' · ');
+        summary.classList.add('visible');
+        btn.classList.remove('pulse');
+        void btn.offsetWidth; // reflow pour relancer l'animation
+        btn.classList.add('pulse');
+      } else {
+        bar.classList.remove('has-selection');
+        summary.classList.remove('visible');
+      }
+    }
+
     function toggle(id) {
       const el = document.getElementById(`inst-${id}`);
       selected.has(id) ? selected.delete(id) : selected.add(id);
       el.classList.toggle('selected', selected.has(id));
-      document.getElementById('count').textContent = selected.size;
+      updateBar();
     }
 
     function toggleGroup(name, btn) {
@@ -452,7 +515,7 @@
         else { selected.add(m.id); el.classList.add('selected'); }
       });
       btn.textContent = allSel ? 'Tout sélectionner' : 'Tout désélectionner';
-      document.getElementById('count').textContent = selected.size;
+      updateBar();
     }
 
     function getManifestUrl() {
