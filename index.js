@@ -346,11 +346,30 @@ app.get('/api/kuma/monitors', authMiddleware, (req, res) => {
 
 app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
   try {
-    const { name, url, type = 'http', interval = 60 } = req.body;
-    if (!name || !url) return res.status(400).json({ error: 'name et url requis' });
-    const result = await kumaEmit('add', { name, url, type, interval, active: true });
+    const { name, url, type = 'http', interval = 60, parent } = req.body;
+    if (!name) return res.status(400).json({ error: 'name requis' });
+    if (type !== 'group' && !url) return res.status(400).json({ error: 'url requise pour un monitor' });
+    const payload = { name, url: url || '', type, interval, active: true };
+    if (parent !== undefined && parent !== null && parent !== '') payload.parent = parseInt(parent);
+    const result = await kumaEmit('add', payload);
     res.json({ ok: true, id: result.monitorID });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Réordonner les monitors (drag & drop)
+app.post('/api/kuma/reorder', authMiddleware, async (req, res) => {
+  try {
+    const { order } = req.body; // [{ id, weight }]
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order requis' });
+    await kumaEmit('changeStatusPageSlug', order);
+    res.json({ ok: true });
+  } catch(e) {
+    // Fallback: essayer setMonitorOrder si disponible
+    try {
+      await kumaEmit('sortData', req.body.order);
+      res.json({ ok: true });
+    } catch(e2) { res.status(500).json({ error: e.message }); }
+  }
 });
 
 app.put('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {

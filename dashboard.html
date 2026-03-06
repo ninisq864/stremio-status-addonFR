@@ -537,6 +537,14 @@
     }
     .kuma-status-badge.ok { background: rgba(34,197,94,0.1); color: var(--green); }
     .kuma-status-badge.err { background: rgba(239,68,68,0.1); color: var(--red); }
+
+    /* DRAG & DROP */
+    .drag-handle { cursor: grab; color: var(--muted); font-size: 14px; padding: 0 4px; user-select: none; }
+    .drag-handle:active { cursor: grabbing; }
+    .group-card.dragging { opacity: 0.4; border: 1px dashed var(--accent); }
+    .group-card.drag-over { border-top: 2px solid var(--accent); }
+    .row.dragging { opacity: 0.4; }
+    .row.drag-over { border-top: 2px solid var(--accent); }
   </style>
 </head>
 <body>
@@ -620,32 +628,45 @@
         <div id="kuma-status-wrap"></div>
         <div class="card" style="margin-bottom:12px">
           <div class="card-head">
-            <span class="card-title">➕ Ajouter un monitor</span>
-            <button class="btn-add" onclick="toggleAddForm()">+ Nouveau</button>
+            <span class="card-title">➕ Ajouter</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-add" onclick="toggleAddForm('monitor')">+ Monitor</button>
+              <button class="btn-add" onclick="toggleAddForm('group')" style="background:rgba(99,102,241,0.15);color:#818cf8;border-color:rgba(99,102,241,0.3)">+ Groupe</button>
+            </div>
           </div>
           <div class="add-monitor-form" id="add-monitor-form">
+            <div id="form-title" style="font-size:12px;font-weight:700;color:var(--text2);min-width:80px"></div>
             <div class="form-field">
               <label>Nom</label>
-              <input class="form-input" id="new-monitor-name" placeholder="Mon Addon" style="width:160px">
+              <input class="form-input" id="new-monitor-name" placeholder="Nom" style="width:160px">
             </div>
-            <div class="form-field">
-              <label>URL surveillée</label>
-              <input class="form-input" id="new-monitor-url" placeholder="https://..." style="width:260px">
+            <div id="monitor-fields" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+              <div class="form-field">
+                <label>Groupe parent</label>
+                <select class="form-input" id="new-monitor-parent" style="width:160px">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>URL surveillée</label>
+                <input class="form-input" id="new-monitor-url" placeholder="https://..." style="width:240px">
+              </div>
+              <div class="form-field">
+                <label>Type</label>
+                <select class="form-input" id="new-monitor-type" style="width:100px">
+                  <option value="http">HTTP</option>
+                  <option value="https">HTTPS</option>
+                  <option value="ping">Ping</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Intervalle (s)</label>
+                <input class="form-input" id="new-monitor-interval" type="number" value="60" style="width:80px">
+              </div>
             </div>
-            <div class="form-field">
-              <label>Type</label>
-              <select class="form-input" id="new-monitor-type" style="width:100px">
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
-                <option value="ping">Ping</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label>Intervalle (s)</label>
-              <input class="form-input" id="new-monitor-interval" type="number" value="60" style="width:80px">
-            </div>
+            <input type="hidden" id="new-entry-type" value="monitor">
             <button class="btn-save" onclick="addMonitor()" style="margin-top:18px">✅ Créer</button>
-            <button class="btn-cancel" onclick="toggleAddForm()" style="margin-top:18px">Annuler</button>
+            <button class="btn-cancel" onclick="toggleAddForm(null)" style="margin-top:18px">Annuler</button>
           </div>
         </div>
         <div id="instances-by-group"></div>
@@ -851,8 +872,9 @@
         return last && last.status === 1;
       }).length;
 
-      html += `<div class="card" style="margin-bottom:16px">
+      html += `<div class="card" id="gcard-${group.id || name}" draggable="true" data-gid="${group.id || name}" ondragstart="dragStartGroup(event,this)" ondragover="dragOverGroup(event)" ondrop="dropGroup(event,this)" ondragleave="this.classList.remove('drag-over')" style="margin-bottom:16px">
         <div class="card-head">
+          <span class="drag-handle" title="Glisser pour réordonner groupes">⠿</span>
           <span class="card-title">${name} <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span></span>
         </div>`;
 
@@ -864,7 +886,8 @@
         const displayName = customNames[m.id] || m.name;
         const link = customLinks[m.id] || '';
 
-        html += `<div class="row" id="row-${m.id}" style="${isHidden?'opacity:0.4':''}">
+        html += `<div class="row" id="row-${m.id}" draggable="true" data-mid="${m.id}" data-gname="${name}" ondragstart="dragStartRow(event,this)" ondragover="dragOverRow(event)" ondrop="dropRow(event,this)" ondragleave="this.classList.remove('drag-over')" style="${isHidden?'opacity:0.4':''}">
+          <span class="drag-handle" title="Glisser pour réordonner">⠿</span>
           <div class="dot ${isUp?'up':'down'}"></div>
           <input class="inline-input" value="${displayName}" id="name-${m.id}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
           <input class="link-input" value="${link}" id="link-${m.id}" placeholder="https://... (lien optionnel)" title="Lien du site hébergeur">
@@ -881,6 +904,7 @@
     });
 
     document.getElementById('instances-by-group').innerHTML = html;
+    populateParentGroups(groups);
   }
 
   async function saveInstance(id) {
@@ -1070,33 +1094,164 @@
     } catch(e) { toast('❌ ' + e.message); }
   }
 
-  function toggleAddForm() {
-    document.getElementById('add-monitor-form').classList.toggle('open');
+  function toggleAddForm(type) {
+    const form = document.getElementById('add-monitor-form');
+    if (!type) { form.classList.remove('open'); return; }
+    document.getElementById('new-entry-type').value = type;
+    document.getElementById('form-title').textContent = type === 'group' ? '📁 Nouveau groupe' : '🔧 Nouveau monitor';
+    toggleFormFields(type);
+    form.classList.add('open');
+    setTimeout(() => document.getElementById('new-monitor-name').focus(), 50);
+  }
+
+  function toggleFormFields(type) {
+    document.getElementById('monitor-fields').style.display = type === 'monitor' ? 'flex' : 'none';
   }
 
   async function addMonitor() {
+    const entryType = document.getElementById('new-entry-type').value;
     const name = document.getElementById('new-monitor-name').value.trim();
+    if (!name) return toast('❌ Nom requis');
+
+    if (entryType === 'group') {
+      try {
+        const res = await fetch('/api/kuma/monitors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+          body: JSON.stringify({ name, type: 'group', url: '' })
+        });
+        if (res.ok) {
+          toast('✅ Groupe créé !');
+          toggleAddForm();
+          document.getElementById('new-monitor-name').value = '';
+          setTimeout(() => loadInstancesWithKuma(), 1500);
+        } else {
+          const err = await res.json();
+          toast('❌ ' + (err.error || 'Erreur'));
+        }
+      } catch(e) { toast('❌ ' + e.message); }
+      return;
+    }
+
     const url = document.getElementById('new-monitor-url').value.trim();
     const type = document.getElementById('new-monitor-type').value;
     const interval = parseInt(document.getElementById('new-monitor-interval').value) || 60;
-    if (!name || !url) return toast('❌ Nom et URL requis');
+    const parent = document.getElementById('new-monitor-parent')?.value || '';
+    if (!url) return toast('❌ URL requise');
     try {
       const res = await fetch('/api/kuma/monitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        body: JSON.stringify({ name, url, type, interval })
+        body: JSON.stringify({ name, url, type, interval, parent: parent || undefined })
       });
       if (res.ok) {
         toast('✅ Monitor créé !');
         toggleAddForm();
         document.getElementById('new-monitor-name').value = '';
         document.getElementById('new-monitor-url').value = '';
-        setTimeout(loadMonitors, 1000);
+        setTimeout(() => loadInstancesWithKuma(), 1500);
       } else {
         const err = await res.json();
         toast('❌ ' + (err.error || 'Erreur'));
       }
     } catch(e) { toast('❌ ' + e.message); }
+  }
+
+  // ── DRAG & DROP ───────────────────────────────────────────────────────────
+  let dragSrcGroup = null;
+  let dragSrcRow = null;
+
+  function dragStartGroup(e, el) {
+    dragSrcGroup = el;
+    dragSrcRow = null;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function dragOverGroup(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const card = e.currentTarget;
+    if (dragSrcGroup && card !== dragSrcGroup) card.classList.add('drag-over');
+  }
+  function dropGroup(e, el) {
+    e.preventDefault();
+    el.classList.remove('drag-over');
+    if (!dragSrcGroup || dragSrcGroup === el) return;
+    const container = document.getElementById('instances-by-group');
+    const cards = [...container.querySelectorAll('.card[data-gid]')];
+    const srcIdx = cards.indexOf(dragSrcGroup);
+    const dstIdx = cards.indexOf(el);
+    if (srcIdx < dstIdx) el.after(dragSrcGroup);
+    else el.before(dragSrcGroup);
+    dragSrcGroup.classList.remove('dragging');
+    dragSrcGroup = null;
+    saveGroupOrder();
+  }
+
+  function dragStartRow(e, el) {
+    dragSrcRow = el;
+    dragSrcGroup = null;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
+  }
+  function dragOverRow(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragSrcRow && e.currentTarget !== dragSrcRow) e.currentTarget.classList.add('drag-over');
+  }
+  function dropRow(e, el) {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.remove('drag-over');
+    if (!dragSrcRow || dragSrcRow === el) return;
+    const card = el.closest('.card');
+    const rows = [...card.querySelectorAll('.row')];
+    const srcIdx = rows.indexOf(dragSrcRow);
+    const dstIdx = rows.indexOf(el);
+    if (srcIdx < dstIdx) el.after(dragSrcRow);
+    else el.before(dragSrcRow);
+    dragSrcRow.classList.remove('dragging');
+    dragSrcRow = null;
+    saveRowOrder(card);
+  }
+
+  async function saveGroupOrder() {
+    const cards = [...document.getElementById('instances-by-group').querySelectorAll('.card[data-gid]')];
+    const order = cards.map((c, i) => ({ id: c.dataset.gid, weight: i }));
+    try {
+      await fetch('/api/kuma/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ order })
+      });
+      toast('✅ Ordre des groupes sauvegardé');
+    } catch(e) { toast('⚠️ Ordre sauvegardé localement'); }
+  }
+
+  async function saveRowOrder(card) {
+    const rows = [...card.querySelectorAll('.row[data-mid]')];
+    const order = rows.map((r, i) => ({ id: r.dataset.mid, weight: i }));
+    try {
+      await fetch('/api/kuma/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ order })
+      });
+      toast('✅ Ordre sauvegardé');
+    } catch(e) { toast('⚠️ Ordre sauvegardé localement'); }
+  }
+
+  // Remplir le sélecteur de groupe parent
+  function populateParentGroups(groups) {
+    const sel = document.getElementById('new-monitor-parent');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Aucun —</option>';
+    groups.forEach(g => {
+      const name = g.name?.replace(/\n/g,'').trim() || '';
+      if (g.id) sel.innerHTML += `<option value="${g.id}">${name}</option>`;
+    });
   }
 
   // ── CACHE ─────────────────────────────────────────────────────────────────
