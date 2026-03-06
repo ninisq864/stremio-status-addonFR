@@ -61,6 +61,8 @@ async function loadConfigFromGithub() {
     });
     githubFileSha = res.data.sha;
     config = { ...DEFAULT_CONFIG, ...JSON.parse(Buffer.from(res.data.content, 'base64').toString('utf8')) };
+    // Restaurer la version du manifest
+    if (config.manifestVersion) manifest.version = config.manifestVersion;
     console.log('✅ Config chargée depuis GitHub');
   } catch(e) {
     if (e.response?.status === 404) await saveConfigToGithub(config);
@@ -83,8 +85,17 @@ async function saveConfigToGithub(cfg) {
   }
 }
 
-function loadConfig() { return config; }
-async function saveConfig(cfg) { await saveConfigToGithub(cfg); }
+async function saveConfig(cfg) {
+  // Auto-incrément version manifest
+  if (cfg.autoIncrementVersion) {
+    const parts = (cfg.manifestVersion || manifest.version).split('.').map(Number);
+    parts[2] = (parts[2] || 0) + 1;
+    cfg.manifestVersion = parts.join('.');
+    manifest.version = cfg.manifestVersion;
+    console.log(`📦 Version manifest: ${manifest.version}`);
+  }
+  await saveConfigToGithub(cfg);
+}
 
 // ── UPTIME KUMA SOCKET.IO ──────────────────────────────────────────────────────
 let kumaSocket = null;
@@ -313,6 +324,11 @@ app.get('/api/config', authMiddleware, (req, res) => res.json(loadConfig()));
 app.post('/api/config', authMiddleware, async (req, res) => {
   const cfg = { ...loadConfig(), ...req.body };
   await saveConfig(cfg);
+  // Déclencher webhook sortant si configuré
+  if (cfg.webhookOut) {
+    axios.post(cfg.webhookOut, { event: 'config_updated', ts: Date.now() })
+      .catch(e => console.warn('⚠️ Webhook sortant échoué:', e.message));
+  }
   res.json({ ok: true });
 });
 app.post('/api/cache/refresh', authMiddleware, (req, res) => {
