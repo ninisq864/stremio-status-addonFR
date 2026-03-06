@@ -232,8 +232,10 @@ const builder = new addonBuilder(manifest);
 function decodeUserConfig(encoded) {
   if (!encoded || encoded === 'default') return null;
   try {
-    const raw = JSON.parse(decodeURIComponent(escape(Buffer.from(encoded, 'base64').toString('utf8'))));
-    // Support format compact {m, g} et format long {monitors, groups}
+    // Reconvertir base64 URL-safe en base64 standard
+    const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
+    const raw = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
     return {
       monitors: raw.m || raw.monitors || [],
       groups: raw.g || raw.groups || []
