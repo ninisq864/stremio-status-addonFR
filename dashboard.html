@@ -716,15 +716,15 @@
           </div>
           <div class="setting-item">
             <div class="setting-info">
-              <div class="setting-label">🔗 Lien d'installation</div>
-              <div class="setting-desc">URL manifest à partager pour installer l'addon dans Stremio</div>
+              <div class="setting-label">🔗 Lien du site</div>
+              <div class="setting-desc">URL de la page d'installation à partager à tes utilisateurs</div>
             </div>
             <div class="setting-control" style="flex-direction:column;align-items:flex-start;gap:8px">
               <div style="display:flex;gap:8px;width:100%">
                 <input type="text" class="setting-input" id="manifest-url-display" readonly style="flex:1;font-family:monospace;font-size:11px;color:var(--text2)" value="Chargement...">
                 <button class="btn-save" onclick="copyManifest()">📋 Copier</button>
               </div>
-              <a id="manifest-stremio-link" href="#" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">▶ Ouvrir dans Stremio</a>
+              <a id="manifest-stremio-link" href="#" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">🌐 Ouvrir dans le navigateur</a>
             </div>
           </div>
         </div>
@@ -1019,19 +1019,18 @@
 
   function initSettings() {
     const base = window.location.origin;
-    const manifestUrl = `${base}/manifest.json`;
+    const configureUrl = `${base}/configure`;
     const stremioUrl = `stremio://${base.replace(/^https?:\/\//, '')}/manifest.json`;
     const el = document.getElementById('manifest-url-display');
     const link = document.getElementById('manifest-stremio-link');
-    if (el) el.value = manifestUrl;
-    if (link) link.href = stremioUrl;
-    // Charger webhook sortant depuis config
+    if (el) el.value = configureUrl;
+    if (link) link.href = configureUrl;
     const webhookEl = document.getElementById('setting-webhook');
     if (webhookEl && currentConfig?.webhookOut) webhookEl.value = currentConfig.webhookOut;
   }
 
   function copyManifest() {
-    const url = document.getElementById('manifest-url-display')?.value || `${window.location.origin}/manifest.json`;
+    const url = document.getElementById('manifest-url-display')?.value || `${window.location.origin}/configure`;
     navigator.clipboard.writeText(url);
     toast('📋 Lien copié !');
   }
