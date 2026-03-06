@@ -328,8 +328,9 @@ app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard
 
 // Route manifest personnalisé
 app.get('/:userConfig/manifest.json', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
   const userCfg = decodeUserConfig(req.params.userConfig);
-  const cfg = loadConfig();
   const personalManifest = {
     ...manifest,
     id: `fr.stremio.status.${req.params.userConfig.slice(0, 8)}`,
@@ -341,17 +342,15 @@ app.get('/:userConfig/manifest.json', (req, res) => {
 
 // Route catalog personnalisé
 app.get('/:userConfig/catalog/:type/:id.json', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
   try {
     const userCfg = decodeUserConfig(req.params.userConfig);
     const { groups, heartbeats } = await getUptimeData();
     const cfg = loadConfig();
     let metas = buildCatalog(groups, heartbeats, cfg, userCfg);
-    // Filtres extra
-    const extra = {};
-    if (req.query.genre) extra.genre = req.query.genre;
-    if (req.query.search) extra.search = req.query.search.toLowerCase();
-    if (extra.genre) metas = metas.filter(m => m.genres.includes(extra.genre));
-    if (extra.search) metas = metas.filter(m => m.name.toLowerCase().includes(extra.search));
+    if (req.query.genre) metas = metas.filter(m => m.genres.includes(req.query.genre));
+    if (req.query.search) metas = metas.filter(m => m.name.toLowerCase().includes(req.query.search.toLowerCase()));
     res.json({ metas });
   } catch(e) {
     console.error('Erreur catalog perso:', e.message);
