@@ -512,6 +512,8 @@
       document.getElementById('btn-global').textContent = allSelected ? 'Tout sélectionner' : 'Tout désélectionner';
       updateBar();
     }
+
+    function updateBar() {
       const count = selected.size;
       document.getElementById('count').textContent = count;
       const bar = document.getElementById('install-bar');
