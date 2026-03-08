@@ -4,21 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Admin — StremioFR</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root[data-theme="dark"] {
-      --bg: #080a0f;
-      --surface: #0e1118;
-      --surface2: #141820;
+      --bg: #0a0a0b;
+      --surface: #111113;
+      --surface2: #18181b;
       --border: rgba(255,255,255,0.06);
-      --accent: #f97316;
-      --accent-dim: rgba(249,115,22,0.12);
-      --green: #22c55e;
-      --red: #ef4444;
-      --text: #e2e8f0;
-      --text2: #94a3b8;
-      --muted: #4b5563;
-      --input-bg: #080a0f;
+      --accent: #e53e3e;
+      --accent-dim: rgba(229,62,62,0.08);
+      --green: #48bb78;
+      --red: #e53e3e;
+      --text: #f0f0f0;
+      --text2: #888;
+      --muted: #666;
+      --muted2: #444;
+      --input-bg: #0a0a0b;
       --card-hover: rgba(255,255,255,0.02);
     }
 
@@ -27,13 +28,14 @@
       --surface: #ffffff;
       --surface2: #f8fafc;
       --border: rgba(0,0,0,0.08);
-      --accent: #f97316;
-      --accent-dim: rgba(249,115,22,0.1);
-      --green: #16a34a;
-      --red: #dc2626;
+      --accent: #e53e3e;
+      --accent-dim: rgba(229,62,62,0.08);
+      --green: #38a169;
+      --red: #e53e3e;
       --text: #0f172a;
       --text2: #475569;
       --muted: #94a3b8;
+      --muted2: #cbd5e1;
       --input-bg: #f8fafc;
       --card-hover: rgba(0,0,0,0.02);
     }
@@ -43,7 +45,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       min-height: 100vh;
       transition: background 0.3s, color 0.3s;
     }
@@ -77,7 +79,7 @@
       border-radius: 8px;
       padding: 11px 14px;
       color: var(--text);
-      font-family: 'Space Mono', monospace;
+      font-family: 'Rajdhani', monospace;
       font-size: 13px;
       transition: border-color 0.2s;
       margin-bottom: 16px;
@@ -93,7 +95,7 @@
       border: none;
       border-radius: 8px;
       padding: 12px;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
@@ -164,7 +166,7 @@
       margin-bottom: 2px;
       border: none; background: none;
       width: 100%; text-align: left;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
     }
     .nav-item:hover { background: var(--surface2); color: var(--text); }
     .nav-item.active { background: var(--accent-dim); color: var(--accent); }
@@ -184,7 +186,7 @@
       justify-content: space-between;
     }
     .cache-label { font-size: 11px; color: var(--muted); font-weight: 600; }
-    .cache-age { font-size: 13px; color: var(--green); font-family: 'Space Mono', monospace; font-weight: 700; }
+    .cache-age { font-size: 13px; color: var(--green); font-family: 'Rajdhani', monospace; font-weight: 700; }
 
     .btn-sm {
       width: 100%;
@@ -195,7 +197,7 @@
       font-size: 12px;
       color: var(--text2);
       cursor: pointer;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       font-weight: 600;
       transition: all 0.2s;
       margin-bottom: 6px;
@@ -211,7 +213,7 @@
       font-size: 12px;
       color: var(--muted);
       cursor: pointer;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       transition: all 0.2s;
     }
     .btn-logout:hover { color: var(--red); border-color: var(--red); }
@@ -265,7 +267,7 @@
       padding: 6px 12px;
       font-size: 12px;
       font-weight: 700;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -290,7 +292,7 @@
 
     .uptime-badge {
       font-size: 12px; font-weight: 700;
-      font-family: 'Space Mono', monospace;
+      font-family: 'Rajdhani', monospace;
       min-width: 52px; text-align: right;
     }
 
@@ -301,7 +303,7 @@
       border-radius: 6px;
       padding: 5px 10px;
       color: var(--text);
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       font-size: 12px;
       font-weight: 600;
       transition: border-color 0.2s;
@@ -315,7 +317,7 @@
       border-radius: 6px;
       padding: 5px 10px;
       color: var(--text2);
-      font-family: 'Space Mono', monospace;
+      font-family: 'Rajdhani', monospace;
       font-size: 11px;
       transition: border-color 0.2s;
       width: 200px;
@@ -328,7 +330,7 @@
       border-radius: 6px;
       padding: 5px 10px;
       font-size: 11px;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.15s;
@@ -363,7 +365,7 @@
       border-radius: 6px;
       padding: 8px 12px;
       color: var(--text);
-      font-family: 'Space Mono', monospace;
+      font-family: 'Rajdhani', monospace;
       font-size: 11px;
       transition: border-color 0.2s;
     }
@@ -394,7 +396,7 @@
       border-radius: 8px;
       padding: 9px 14px;
       color: var(--text);
-      font-family: 'Space Mono', monospace;
+      font-family: 'Rajdhani', monospace;
       font-size: 13px;
       width: 200px;
       transition: border-color 0.2s;
@@ -409,7 +411,7 @@
       padding: 9px 18px;
       font-size: 13px;
       font-weight: 700;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       cursor: pointer;
       transition: background 0.2s;
       white-space: nowrap;
@@ -445,7 +447,7 @@
       border-radius: 7px;
       padding: 9px 12px;
       color: var(--text);
-      font-family: 'Space Mono', monospace;
+      font-family: 'Rajdhani', monospace;
       font-size: 12px;
       transition: border-color 0.2s;
     }
@@ -460,7 +462,7 @@
       font-weight: 600;
       color: var(--text2);
       cursor: pointer;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'DM Sans', sans-serif;
     }
 
     /* TOAST */
@@ -495,7 +497,7 @@
       flex: 1;
       background: var(--input-bg); border: 1px solid var(--border);
       border-radius: 6px; padding: 5px 10px;
-      color: var(--text2); font-family: 'Space Mono', monospace; font-size: 11px;
+      color: var(--text2); font-family: 'Rajdhani', monospace; font-size: 11px;
       transition: border-color 0.2s;
     }
     .monitor-url:focus { outline: none; border-color: var(--accent); }
@@ -507,10 +509,10 @@
     .monitor-status { font-size: 11px; font-weight: 700; min-width: 60px; text-align: center; }
     .monitor-status.active { color: var(--green); }
     .monitor-status.paused { color: #f59e0b; }
-    .btn-pause { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer; color: var(--text2); font-family: 'Outfit', sans-serif; transition: all 0.15s; }
+    .btn-pause { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer; color: var(--text2); font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
     .btn-pause:hover { border-color: #f59e0b; color: #f59e0b; }
     .btn-pause.resume:hover { border-color: var(--green); color: var(--green); }
-    .btn-delete { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer; color: var(--text2); font-family: 'Outfit', sans-serif; transition: all 0.15s; }
+    .btn-delete { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer; color: var(--text2); font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
     .btn-delete:hover { border-color: var(--red); color: var(--red); }
 
     /* ADD MONITOR FORM */
@@ -526,7 +528,7 @@
     .form-input {
       background: var(--input-bg); border: 1px solid var(--border);
       border-radius: 6px; padding: 7px 10px;
-      color: var(--text); font-family: 'Outfit', sans-serif; font-size: 12px;
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px;
       transition: border-color 0.2s;
     }
     .form-input:focus { outline: none; border-color: var(--accent); }
@@ -696,11 +698,15 @@
           <div class="page-title">Paramètres</div>
           <div class="page-sub">Configuration générale de l'addon</div>
         </div>
-        <div class="settings-grid">
+
+        <!-- GÉNÉRAL -->
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">Général</div>
+        <div class="settings-grid" style="margin-bottom:28px">
+
           <div class="setting-item">
             <div class="setting-info">
               <div class="setting-label">🔄 Auto-incrément version</div>
-              <div class="setting-desc">Incrémente automatiquement la version du manifest à chaque sauvegarde — force Stremio à recharger le catalogue pour tous les utilisateurs</div>
+              <div class="setting-desc">Incrémente la version du manifest à chaque sauvegarde — force Stremio à recharger le catalogue <span id="manifest-version-badge" style="font-family:monospace;font-size:11px;color:var(--accent);margin-left:6px"></span></div>
             </div>
             <div class="setting-control">
               <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
@@ -713,19 +719,64 @@
               </label>
             </div>
           </div>
+
           <div class="setting-item">
             <div class="setting-info">
-              <div class="setting-label">TTL du cache</div>
+              <div class="setting-label">⏱️ TTL du cache</div>
               <div class="setting-desc">Durée en secondes avant rafraîchissement des données</div>
             </div>
             <div class="setting-control">
-              <input type="number" class="setting-input" id="setting-ttl" value="60" min="10" max="3600">
+              <input type="range" id="setting-ttl-range" min="10" max="300" step="5" value="30"
+                style="width:120px;accent-color:var(--accent)" oninput="document.getElementById('setting-ttl').value=this.value">
+              <input type="number" class="setting-input" id="setting-ttl" value="30" min="10" max="3600" style="width:70px"
+                oninput="document.getElementById('setting-ttl-range').value=this.value">
               <button class="btn-save" onclick="saveTTL()">Sauvegarder</button>
             </div>
           </div>
+
           <div class="setting-item">
             <div class="setting-info">
-              <div class="setting-label">Mot de passe admin</div>
+              <div class="setting-label">👁️ Masquer instances hors ligne</div>
+              <div class="setting-desc">Ne pas afficher les instances hors ligne sur la page d'installation publique</div>
+            </div>
+            <div class="setting-control">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                <span id="hide-offline-label" style="font-size:12px;color:var(--muted)">Désactivé</span>
+                <div style="position:relative;width:40px;height:22px">
+                  <input type="checkbox" id="setting-hideoffline" onchange="saveHideOffline(this.checked)" style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;margin:0;z-index:1">
+                  <div id="hide-offline-track" style="position:absolute;inset:0;border-radius:11px;background:var(--muted2);transition:background 0.2s"></div>
+                  <div id="hide-offline-thumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- APPARENCE -->
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">Apparence</div>
+        <div class="settings-grid" style="margin-bottom:28px">
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-label">🖼️ Poster par défaut</div>
+              <div class="setting-desc">Image affichée dans Stremio pour les groupes sans logo</div>
+            </div>
+            <div class="setting-control">
+              <input type="text" class="setting-input" id="setting-defaultposter" placeholder="https://..." style="flex:1;font-size:12px">
+              <button class="btn-save" onclick="saveDefaultPoster()">Sauvegarder</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- SÉCURITÉ -->
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">Sécurité</div>
+        <div class="settings-grid" style="margin-bottom:28px">
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-label">🔑 Mot de passe admin</div>
               <div class="setting-desc">Modifiez le mot de passe d'accès au dashboard</div>
             </div>
             <div class="setting-control">
@@ -733,6 +784,28 @@
               <button class="btn-save" onclick="savePassword()">Changer</button>
             </div>
           </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="setting-label">🔒 Token d'accès dashboard</div>
+              <div class="setting-desc">URL sécurisée avec token pour accéder au dashboard sans mot de passe (partage limité)</div>
+            </div>
+            <div class="setting-control" style="flex-direction:column;align-items:flex-start;gap:8px">
+              <div style="display:flex;gap:8px;width:100%">
+                <input type="text" class="setting-input" id="token-url-display" readonly style="flex:1;font-family:monospace;font-size:11px;color:var(--text2)" value="Générer un token...">
+                <button class="btn-save" onclick="generateToken()">Générer</button>
+                <button class="btn-save" style="background:var(--surface2)" onclick="copyTokenUrl()">📋</button>
+              </div>
+              <span style="font-size:11px;color:var(--muted)">⚠️ Partagez avec précaution — donne accès en lecture au dashboard</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- PARTAGE -->
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">Partage</div>
+        <div class="settings-grid" style="margin-bottom:28px">
+
           <div class="setting-item">
             <div class="setting-info">
               <div class="setting-label">🔗 Lien du site</div>
@@ -746,7 +819,34 @@
               <a id="manifest-stremio-link" href="#" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">🌐 Ouvrir dans le navigateur</a>
             </div>
           </div>
+
         </div>
+
+        <!-- SYSTÈME -->
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">Système</div>
+        <div class="settings-grid">
+          <div class="setting-item" style="background:var(--surface2)">
+            <div style="display:flex;gap:32px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">VERSION MANIFEST</div>
+                <div style="font-family:monospace;font-size:16px;color:var(--accent)" id="sysinfo-version">—</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">DERNIÈRE SYNC KUMA</div>
+                <div style="font-family:monospace;font-size:16px;color:var(--text)" id="sysinfo-sync">—</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">TAILLE CONFIG</div>
+                <div style="font-family:monospace;font-size:16px;color:var(--text)" id="sysinfo-size">—</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">REFRESH CLIENT</div>
+                <div style="font-family:monospace;font-size:16px;color:var(--text)" id="sysinfo-refresh">30s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -1050,12 +1150,89 @@
     const link = document.getElementById('manifest-stremio-link');
     if (el) el.value = configureUrl;
     if (link) link.href = configureUrl;
+
     // Auto-version toggle
     const autoEnabled = currentConfig?.autoIncrementVersion || false;
     const cb = document.getElementById('setting-autoversion');
-    if (cb) {
-      cb.checked = autoEnabled;
-      updateAutoVersionUI(autoEnabled);
+    if (cb) { cb.checked = autoEnabled; updateAutoVersionUI(autoEnabled); }
+
+    // Version manifest badge
+    const ver = currentConfig?.manifestVersion || '1.0.0';
+    const badge = document.getElementById('manifest-version-badge');
+    if (badge) badge.textContent = `v${ver}`;
+    const sysVer = document.getElementById('sysinfo-version');
+    if (sysVer) sysVer.textContent = `v${ver}`;
+
+    // TTL slider
+    const ttl = currentConfig?.cacheTTL || 30;
+    const ttlInput = document.getElementById('setting-ttl');
+    const ttlRange = document.getElementById('setting-ttl-range');
+    if (ttlInput) ttlInput.value = ttl;
+    if (ttlRange) ttlRange.value = Math.min(ttl, 300);
+
+    // Hide offline toggle
+    const hideOffline = currentConfig?.hideOffline || false;
+    const hoCb = document.getElementById('setting-hideoffline');
+    if (hoCb) { hoCb.checked = hideOffline; updateHideOfflineUI(hideOffline); }
+
+    // Default poster
+    const dp = document.getElementById('setting-defaultposter');
+    if (dp) dp.value = currentConfig?.defaultPoster || '';
+
+    // Token URL
+    const tok = currentConfig?.dashboardToken;
+    const tokenDisplay = document.getElementById('token-url-display');
+    if (tokenDisplay && tok) tokenDisplay.value = `${base}/dashboard?token=${tok}`;
+
+    // Sys info
+    const sysRefresh = document.getElementById('sysinfo-refresh');
+    if (sysRefresh) sysRefresh.textContent = `${ttl}s`;
+    const sysSync = document.getElementById('sysinfo-sync');
+    if (sysSync && allData?.lastSync) sysSync.textContent = new Date(allData.lastSync).toLocaleTimeString('fr-FR');
+    const sysSize = document.getElementById('sysinfo-size');
+    if (sysSize) sysSize.textContent = `${(JSON.stringify(currentConfig).length / 1024).toFixed(1)} KB`;
+  }
+
+  function updateHideOfflineUI(enabled) {
+    const label = document.getElementById('hide-offline-label');
+    const track = document.getElementById('hide-offline-track');
+    const thumb = document.getElementById('hide-offline-thumb');
+    if (label) { label.textContent = enabled ? 'Activé' : 'Désactivé'; label.style.color = enabled ? 'var(--green)' : 'var(--muted)'; }
+    if (track) track.style.background = enabled ? 'var(--green)' : 'var(--muted2)';
+    if (thumb) thumb.style.transform = enabled ? 'translateX(18px)' : 'translateX(0)';
+  }
+
+  async function saveHideOffline(enabled) {
+    updateHideOfflineUI(enabled);
+    const cfg = { ...currentConfig, hideOffline: enabled };
+    await saveConfig(cfg);
+    currentConfig = cfg;
+    toast(enabled ? '✅ Instances hors ligne masquées' : '✅ Instances hors ligne visibles');
+  }
+
+  async function saveDefaultPoster() {
+    const url = document.getElementById('setting-defaultposter').value.trim();
+    const cfg = { ...currentConfig, defaultPoster: url };
+    await saveConfig(cfg);
+    currentConfig = cfg;
+    toast('✅ Poster par défaut sauvegardé');
+  }
+
+  function generateToken() {
+    const tok = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    const cfg = { ...currentConfig, dashboardToken: tok };
+    saveConfig(cfg);
+    currentConfig = cfg;
+    const base = window.location.origin;
+    document.getElementById('token-url-display').value = `${base}/dashboard?token=${tok}`;
+    toast('✅ Token généré');
+  }
+
+  function copyTokenUrl() {
+    const val = document.getElementById('token-url-display').value;
+    if (val && val !== 'Générer un token...') {
+      navigator.clipboard.writeText(val);
+      toast('📋 URL token copiée !');
     }
   }
 
