@@ -108,7 +108,7 @@
     .layout { display: flex; min-height: 100vh; }
 
     .sidebar {
-      width: 230px;
+      width: 260px;
       background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex;
@@ -120,14 +120,21 @@
     }
 
     .sidebar-logo {
-      padding: 20px 18px;
+      padding: 16px 14px;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 8px;
     }
-
-    .sidebar-logo-text .title { font-size: 15px; font-weight: 800; color: var(--text); }
+    .sidebar-logo-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .sidebar-logo-text { min-width: 0; }
+    .sidebar-logo-text .title { font-size: 14px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sidebar-logo-text .sub { font-size: 10px; color: var(--muted); margin-top: 1px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     .theme-btn {
@@ -219,7 +226,7 @@
     .btn-logout:hover { color: var(--red); border-color: var(--red); }
 
     /* MAIN */
-    .main { margin-left: 230px; padding: 28px 32px 60px; }
+    .main { margin-left: 260px; padding: 28px 32px 60px; }
     .page { display: none; }
     .page.active { display: block; }
 
@@ -233,14 +240,31 @@
     .stat-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px 20px;
+      border-radius: 14px;
+      padding: 20px 22px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
     }
-    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 10px; }
-    .stat-value { font-size: 32px; font-weight: 800; color: var(--text); }
+    .stat-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--card-accent, var(--border));
+      border-radius: 14px 14px 0 0;
+    }
+    .stat-card.c-orange::before { --card-accent: var(--accent); }
+    .stat-card.c-green::before { --card-accent: var(--green); }
+    .stat-card.c-red::before { --card-accent: var(--red); }
+    .stat-card.c-uptime::before { --card-accent: #a78bfa; }
+    .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px; }
+    .stat-value { font-size: 36px; font-weight: 800; color: var(--text); line-height: 1; }
     .stat-value.green { color: var(--green); }
     .stat-value.red { color: var(--red); }
     .stat-value.orange { color: var(--accent); }
+    .stat-icon { position: absolute; bottom: 12px; right: 16px; font-size: 28px; opacity: 0.08; }
 
     /* CARD */
     .card {
@@ -504,6 +528,25 @@
       pointer-events: none;
     }
 
+    /* UPTIME BAR */
+    .uptime-bar-wrap { width: 80px; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+    .uptime-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+    /* GROUP HEADER */
+    .group-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 18px 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .group-header-logo {
+      width: 24px; height: 24px; border-radius: 6px;
+      object-fit: contain; background: var(--surface);
+      border: 1px solid var(--border); flex-shrink: 0;
+    }
+    .group-header-name { font-size: 12px; font-weight: 700; color: var(--text); }
+    .group-header-count { font-size: 11px; color: var(--muted); margin-left: auto; }
+
     /* MONITORS */
     .monitor-row {
       display: flex; align-items: center; gap: 12px;
@@ -595,9 +638,15 @@
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-logo">
-        <div class="sidebar-logo-text">
-          <div class="title">📡 StremioFR</div>
-          <div class="sub">Admin Dashboard</div>
+        <div class="sidebar-logo-brand">
+          <img src="https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png" 
+               style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <span style="display:none;font-size:20px">📡</span>
+          <div class="sidebar-logo-text">
+            <div class="title">StremioFR</div>
+            <div class="sub">Admin Dashboard</div>
+          </div>
         </div>
         <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
       </div>
@@ -632,13 +681,34 @@
           <div class="page-sub">Vue globale en temps réel — rafraîchissement toutes les 30s</div>
         </div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-label">Total instances</div><div class="stat-value orange" id="stat-total">—</div></div>
-          <div class="stat-card"><div class="stat-label">En ligne</div><div class="stat-value green" id="stat-up">—</div></div>
-          <div class="stat-card"><div class="stat-label">Hors ligne</div><div class="stat-value red" id="stat-down">—</div></div>
-          <div class="stat-card"><div class="stat-label">Uptime moyen</div><div class="stat-value" id="stat-uptime">—</div></div>
+          <div class="stat-card c-orange">
+            <div class="stat-label">Total instances</div>
+            <div class="stat-value orange" id="stat-total">—</div>
+            <div class="stat-icon">🖥️</div>
+          </div>
+          <div class="stat-card c-green">
+            <div class="stat-label">En ligne</div>
+            <div class="stat-value green" id="stat-up">—</div>
+            <div class="stat-icon">✅</div>
+          </div>
+          <div class="stat-card c-red">
+            <div class="stat-label">Hors ligne</div>
+            <div class="stat-value red" id="stat-down">—</div>
+            <div class="stat-icon">❌</div>
+          </div>
+          <div class="stat-card c-uptime">
+            <div class="stat-label">Uptime moyen</div>
+            <div class="stat-value" id="stat-uptime">—</div>
+            <div class="stat-icon">📈</div>
+          </div>
         </div>
         <div class="card">
-          <div class="card-head"><span class="card-title">Toutes les instances <span class="pulse" style="color:var(--green)">●</span></span></div>
+          <div class="card-head">
+            <span class="card-title">Toutes les instances</span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600">
+              <span class="pulse">●</span> Temps réel
+            </span>
+          </div>
           <div id="stats-list"></div>
         </div>
       </div>
@@ -1054,6 +1124,16 @@
     return Math.round(hbs.filter(h => h.status === 1).length / hbs.length * 10000) / 100;
   }
 
+  function uptimeColor(u) {
+    return u >= 99 ? 'var(--green)' : u >= 95 ? '#f59e0b' : 'var(--red)';
+  }
+
+  function getGroupLogo(name) {
+    if (!currentConfig) return null;
+    const key = Object.keys(currentConfig.groupPosters || {}).find(k => name.toLowerCase().includes(k.toLowerCase()));
+    return key ? currentConfig.groupPosters[key] : (currentConfig.defaultPoster || null);
+  }
+
   function renderStats() {
     if (!allData) return;
     const { groups, heartbeats } = allData;
@@ -1061,19 +1141,37 @@
 
     groups.forEach(group => {
       const name = group.name.replace(/\n/g,'').trim();
+      const logo = getGroupLogo(name);
+      const groupUp = group.monitorList.filter(m => {
+        const last = (heartbeats[m.id]||[]).slice(-1)[0];
+        return last && last.status === 1;
+      }).length;
+
+      html += `<div style="margin-bottom:0">
+        <div class="group-header">
+          ${logo ? `<img class="group-header-logo" src="${escapeHtml(logo)}" onerror="this.style.display='none'">` : ''}
+          <span class="group-header-name">${escapeHtml(name)}</span>
+          <span class="group-header-count">${groupUp}/${group.monitorList.length} en ligne</span>
+        </div>`;
+
       group.monitorList.forEach(m => {
         const hbs = heartbeats[m.id] || [];
         const last = hbs.slice(-1)[0];
         const isUp = last && last.status === 1;
         const uptime = calcUptime(hbs);
+        const color = uptimeColor(uptime);
         total++; if (isUp) up++; uptimes.push(uptime);
         html += `<div class="row">
           <div class="dot ${isUp?'up':'down'}"></div>
           <div class="row-name">${escapeHtml(m.name)}</div>
-          <div class="row-group">${escapeHtml(name)}</div>
-          <div class="uptime-badge" style="color:${uptime>=99?'var(--green)':uptime>=95?'#f59e0b':'var(--red)'}">${uptime}%</div>
+          <div class="uptime-bar-wrap">
+            <div class="uptime-bar-fill" style="width:${uptime}%;background:${color}"></div>
+          </div>
+          <div class="uptime-badge" style="color:${color}">${uptime}%</div>
         </div>`;
       });
+
+      html += `</div>`;
     });
 
     const avg = uptimes.length ? Math.round(uptimes.reduce((a,b)=>a+b,0)/uptimes.length*100)/100 : 0;
@@ -1081,7 +1179,7 @@
     document.getElementById('stat-up').textContent = up;
     document.getElementById('stat-down').textContent = total - up;
     document.getElementById('stat-uptime').textContent = `${avg}%`;
-    document.getElementById('stat-uptime').style.color = avg>=99?'var(--green)':avg>=95?'#f59e0b':'var(--red)';
+    document.getElementById('stat-uptime').style.color = uptimeColor(avg);
     document.getElementById('stats-list').innerHTML = html;
   }
 
