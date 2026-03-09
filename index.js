@@ -442,7 +442,7 @@ function logConnection(ip, success) {
   console.log(`${success ? '✅' : '❌'} Tentative login — IP: ${ip} — ${success ? 'Succès' : 'Échec'}`);
 }
 
-app.post('/api/login', loginRateLimit, async (req, res) => {
+app.post('/api/login', cookieAuthMiddleware, loginRateLimit, async (req, res) => {
   const ip = req.ip;
   const { password } = req.body;
   const bruteCheck = checkBruteForce(ip);
@@ -540,7 +540,8 @@ app.get('/api/kuma/monitors', authMiddleware, (req, res) => {
 
 app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
   try {
-    const { name, url, type = 'http', interval = 60, parent } = req.body;
+    const { name, url, interval = 60, parent } = req.body;
+    const type = (req.body.type || 'http').toLowerCase();
     const VALID_TYPES = ['http', 'https', 'tcp', 'ping', 'dns', 'group'];
     if (!name || typeof name !== 'string' || name.trim().length === 0 || name.length > 100)
       return res.status(400).json({ error: 'name invalide (1-100 caractères)' });
