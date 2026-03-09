@@ -367,19 +367,7 @@ app.get('/dashboard', (req, res) => res.status(404).send('Not found'));
 
 // Route secrète dashboard
 app.get(DASHBOARD_PATH, (req, res) => {
-  const cookie = req.cookies[DASHBOARD_COOKIE];
-  const isValidCookie = cookie && crypto.timingSafeEqual(
-    Buffer.from(cookie), Buffer.from(DASHBOARD_COOKIE_SECRET)
-  );
-  if (!isValidCookie) {
-    // Pose le cookie si pas encore présent (première visite avec la bonne URL)
-    res.cookie(DASHBOARD_COOKIE, DASHBOARD_COOKIE_SECRET, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 jours
-    });
-  }
+  // Juste servir la page — le cookie est posé uniquement après login réussi
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
@@ -467,6 +455,13 @@ app.post('/api/login', cookieAuthMiddleware, loginRateLimit, async (req, res) =>
     resetAttempts(ip);
     logConnection(ip, true);
     const token = generateToken({ role: 'admin' });
+    // Pose le cookie de session uniquement après login réussi
+    res.cookie(DASHBOARD_COOKIE, DASHBOARD_COOKIE_SECRET, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
     res.json({ token, expiresIn: SESSION_DURATION });
   } else {
     recordFailedAttempt(ip);
