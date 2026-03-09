@@ -5,10 +5,17 @@ const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { io } = require('socket.io-client');
+const cookieParser = require('cookie-parser');
 
 const UPTIME_KUMA_URL = 'https://uptime-kuma-production-7c44.up.railway.app';
 const STATUS_SLUG = 'stremiofr-addons';
 const BCRYPT_ROUNDS = 12;
+
+// ── DASHBOARD SECRET URL ───────────────────────────────────────────────────────
+const DASHBOARD_SECRET = process.env.DASHBOARD_SECRET || crypto.randomBytes(16).toString('hex');
+const DASHBOARD_PATH = `/dashboard-${DASHBOARD_SECRET}`;
+const DASHBOARD_COOKIE = 'dsid';
+const DASHBOARD_COOKIE_SECRET = process.env.DASHBOARD_COOKIE_SECRET || crypto.randomBytes(32).toString('hex');
 
 const UPTIME_KUMA_USERNAME = process.env.UPTIME_KUMA_USERNAME || '';
 const UPTIME_KUMA_PASSWORD = process.env.UPTIME_KUMA_PASSWORD || '';
@@ -302,6 +309,7 @@ const addonInterface = builder.getInterface();
 const router = getRouter(addonInterface);
 const app = express();
 app.use(express.json({ limit: '50kb' }));
+app.use(cookieParser());
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -325,7 +333,43 @@ app.use((req, res, next) => {
 
 app.get('/', (req, res) => res.redirect('/configure'));
 app.get('/configure', (req, res) => res.sendFile(path.join(__dirname, 'configure.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+
+// Ancienne URL → 404 discret
+app.get('/dashboard', (req, res) => res.status(404).send('Not found'));
+
+// Route secrète dashboard
+app.get(DASHBOARD_PATH, (req, res) => {
+  const cookie = req.cookies[DASHBOARD_COOKIE];
+  const isValidCookie = cookie && crypto.timingSafeEqual(
+    Buffer.from(cookie), Buffer.from(DASHBOARD_COOKIE_SECRET)
+  );
+  if (!isValidCookie) {
+    // Pose le cookie si pas encore présent (première visite avec la bonne URL)
+    res.cookie(DASHBOARD_COOKIE, DASHBOARD_COOKIE_SECRET, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 jours
+    });
+  }
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+// Middleware cookie pour toutes les routes /api admin
+function cookieAuthMiddleware(req, res, next) {
+  const cookie = req.cookies[DASHBOARD_COOKIE];
+  if (!cookie) return res.status(404).json({ error: 'Not found' });
+  try {
+    const valid = crypto.timingSafeEqual(
+      Buffer.from(cookie), Buffer.from(DASHBOARD_COOKIE_SECRET)
+    );
+    if (!valid) return res.status(404).json({ error: 'Not found' });
+  } catch { return res.status(404).json({ error: 'Not found' }); }
+  next();
+}
+
+// Route pour récupérer l'URL secrète (affichée dans les logs au démarrage)
+app.get('/api/dashboard-url', (req, res) => res.status(404).send('Not found'));
 
 // Route manifest personnalisé
 app.get('/:userConfig/manifest.json', (req, res) => {
@@ -367,7 +411,7 @@ app.get('/:userConfig/catalog/:type/:id.json', async (req, res) => {
   }
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', cookieAuthMiddleware, async (req, res) => {
   const ip = req.ip;
   const { password } = req.body;
   const bruteCheck = checkBruteForce(ip);
@@ -539,6 +583,6 @@ Promise.all([loadConfigFromGithub(), initPassword()]).then(() => {
   connectToKuma();
   app.listen(PORT, () => {
     console.log(`✅ Addon lancé sur le port ${PORT}`);
-    console.log(`🔧 Dashboard: http://localhost:${PORT}/dashboard`);
+    console.log(`🔐 Dashboard: http://localhost:${PORT}${DASHBOARD_PATH}`);
   });
 });
