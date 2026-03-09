@@ -312,13 +312,28 @@ app.use(express.json({ limit: '50kb' }));
 app.use(cookieParser());
 
 app.use((req, res, next) => {
+  // HTTPS forcé
+  if (req.headers['x-forwarded-proto'] === 'http') {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  // Headers sécurité
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline'; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: https:; " +
+    "connect-src 'self'; " +
+    "frame-ancestors 'none';"
+  );
   next();
 });
 
+// Rate limit global
 const requestCounts = new Map();
 app.use((req, res, next) => {
   const ip = req.ip;
@@ -330,6 +345,19 @@ app.use((req, res, next) => {
   if (window.count > 200) return res.status(429).json({ error: 'Trop de requêtes' });
   next();
 });
+
+// Rate limit spécifique login : 10 req/min par IP
+const loginRateCounts = new Map();
+function loginRateLimit(req, res, next) {
+  const ip = req.ip;
+  const now = Date.now();
+  const w = loginRateCounts.get(ip) || { count: 0, start: now };
+  if (now - w.start > 60000) { w.count = 0; w.start = now; }
+  w.count++;
+  loginRateCounts.set(ip, w);
+  if (w.count > 10) return res.status(429).json({ error: 'Trop de tentatives de connexion, réessayez dans 1 minute.' });
+  next();
+}
 
 app.get('/', (req, res) => res.redirect('/configure'));
 app.get('/configure', (req, res) => res.sendFile(path.join(__dirname, 'configure.html')));
@@ -411,22 +439,47 @@ app.get('/:userConfig/catalog/:type/:id.json', async (req, res) => {
   }
 });
 
-app.post('/api/login', cookieAuthMiddleware, async (req, res) => {
+// ── LOGS DE CONNEXION ─────────────────────────────────────────────────────────
+const connectionLogs = [];
+const MAX_LOGS = 100;
+
+function logConnection(ip, success) {
+  const entry = {
+    ts: new Date().toISOString(),
+    ip,
+    success,
+  };
+  connectionLogs.unshift(entry);
+  if (connectionLogs.length > MAX_LOGS) connectionLogs.pop();
+  console.log(`${success ? '✅' : '❌'} Tentative login — IP: ${ip} — ${success ? 'Succès' : 'Échec'}`);
+}
+
+app.post('/api/login', cookieAuthMiddleware, loginRateLimit, async (req, res) => {
   const ip = req.ip;
   const { password } = req.body;
   const bruteCheck = checkBruteForce(ip);
-  if (bruteCheck.blocked) return res.status(429).json({ error: `Trop de tentatives. Réessayez dans ${bruteCheck.remainingMin} minutes.` });
+  if (bruteCheck.blocked) {
+    logConnection(ip, false);
+    return res.status(429).json({ error: `Trop de tentatives. Réessayez dans ${bruteCheck.remainingMin} minutes.` });
+  }
   const isValid = await bcrypt.compare(password || '', ADMIN_PASSWORD_HASH);
   if (isValid) {
     resetAttempts(ip);
+    logConnection(ip, true);
     const token = generateToken({ role: 'admin' });
     res.json({ token, expiresIn: SESSION_DURATION });
   } else {
     recordFailedAttempt(ip);
+    logConnection(ip, false);
     const attempts = loginAttempts.get(ip);
     const remaining = MAX_ATTEMPTS - (attempts?.count || 0);
     res.status(401).json({ error: `Mot de passe incorrect. ${remaining} tentative(s) restante(s).` });
   }
+});
+
+// Route pour voir les logs de connexion depuis le dashboard
+app.get('/api/connection-logs', authMiddleware, (req, res) => {
+  res.json({ logs: connectionLogs });
 });
 
 app.get('/api/data', async (req, res) => {
