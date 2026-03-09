@@ -14,7 +14,7 @@ const UPTIME_KUMA_USERNAME = process.env.UPTIME_KUMA_USERNAME || '';
 const UPTIME_KUMA_PASSWORD = process.env.UPTIME_KUMA_PASSWORD || '';
 
 let ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
-const ADMIN_PASSWORD_RAW = process.env.ADMIN_PASSWORD || 'stremiofr2024';
+const ADMIN_PASSWORD_RAW = process.env.ADMIN_PASSWORD || '';
 
 async function initPassword() {
   if (!ADMIN_PASSWORD_HASH) {
@@ -301,7 +301,7 @@ builder.defineCatalogHandler(async ({ extra }) => {
 const addonInterface = builder.getInterface();
 const router = getRouter(addonInterface);
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50kb' }));
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -332,6 +332,7 @@ app.get('/:userConfig/manifest.json', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
   const uc = req.params.userConfig;
+  if (!/^[A-Za-z0-9_-]{1,200}$/.test(uc)) return res.status(400).json({ error: 'Config invalide' });
   const personalManifest = {
     id: `fr.stremio.status.${uc.slice(0, 12)}`,
     version: manifest.version,
@@ -350,13 +351,13 @@ app.get('/:userConfig/manifest.json', (req, res) => {
 app.get('/:userConfig/catalog/:type/:id.json', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
+  const uc = req.params.userConfig;
+  if (!/^[A-Za-z0-9_-]{1,200}$/.test(uc)) return res.status(400).json({ metas: [] });
   try {
     const userCfg = decodeUserConfig(req.params.userConfig);
-    console.log('🎯 Catalog perso appelé, userCfg:', JSON.stringify(userCfg));
     const { groups, heartbeats } = await getUptimeData();
     const cfg = loadConfig();
     let metas = buildCatalog(groups, heartbeats, cfg, userCfg);
-    console.log(`📦 Metas générés: ${metas.length}`);
     if (req.query.genre) metas = metas.filter(m => m.genres.includes(req.query.genre));
     if (req.query.search) metas = metas.filter(m => m.name.toLowerCase().includes(req.query.search.toLowerCase()));
     res.json({ metas });
@@ -399,9 +400,17 @@ app.get('/api/config/public', (req, res) => {
 
 app.get('/api/config', authMiddleware, (req, res) => res.json(loadConfig()));
 app.post('/api/config', authMiddleware, async (req, res) => {
-  const cfg = { ...loadConfig(), ...req.body };
+  const ALLOWED_FIELDS = [
+    'groupPosters', 'hiddenMonitors', 'customNames', 'customLinks',
+    'defaultPoster', 'cacheTTL', 'autoIncrementVersion', 'manifestVersion',
+    'hideOffline', 'dashboardToken'
+  ];
+  const filtered = {};
+  for (const key of ALLOWED_FIELDS) {
+    if (key in req.body) filtered[key] = req.body[key];
+  }
+  const cfg = { ...loadConfig(), ...filtered };
   await saveConfig(cfg);
-  // Déclencher webhook sortant si configuré
   if (cfg.webhookOut) {
     axios.post(cfg.webhookOut, { event: 'config_updated', ts: Date.now() })
       .catch(e => console.warn('⚠️ Webhook sortant échoué:', e.message));
@@ -440,9 +449,17 @@ app.get('/api/kuma/monitors', authMiddleware, (req, res) => {
 app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
   try {
     const { name, url, type = 'http', interval = 60, parent } = req.body;
-    if (!name) return res.status(400).json({ error: 'name requis' });
-    if (type !== 'group' && !url) return res.status(400).json({ error: 'url requise pour un monitor' });
-    const payload = { name, url: url || '', type, interval, active: true };
+    const VALID_TYPES = ['http', 'https', 'tcp', 'ping', 'dns', 'group'];
+    if (!name || typeof name !== 'string' || name.trim().length === 0 || name.length > 100)
+      return res.status(400).json({ error: 'name invalide (1-100 caractères)' });
+    if (!VALID_TYPES.includes(type))
+      return res.status(400).json({ error: `type invalide, valeurs acceptées: ${VALID_TYPES.join(', ')}` });
+    if (type !== 'group') {
+      if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url requise pour un monitor' });
+      try { new URL(url); } catch { return res.status(400).json({ error: 'url invalide' }); }
+    }
+    const safeInterval = Math.min(Math.max(parseInt(interval) || 60, 20), 3600);
+    const payload = { name: name.trim(), url: url || '', type, interval: safeInterval, active: true };
     if (parent !== undefined && parent !== null && parent !== '') payload.parent = parseInt(parent);
     const result = await kumaEmit('add', payload);
     res.json({ ok: true, id: result.monitorID });
@@ -470,7 +487,18 @@ app.put('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
     const id = parseInt(req.params.id);
     const monitor = kumaMonitors[id];
     if (!monitor) return res.status(404).json({ error: 'Monitor introuvable' });
-    await kumaEmit('editMonitor', { ...monitor, ...req.body, id });
+    const ALLOWED = ['name', 'url', 'type', 'interval', 'active', 'parent'];
+    const safeBody = {};
+    for (const key of ALLOWED) {
+      if (key in req.body) safeBody[key] = req.body[key];
+    }
+    if (safeBody.name && (typeof safeBody.name !== 'string' || safeBody.name.length > 100))
+      return res.status(400).json({ error: 'name invalide' });
+    if (safeBody.url) {
+      try { new URL(safeBody.url); } catch { return res.status(400).json({ error: 'url invalide' }); }
+    }
+    if (safeBody.interval) safeBody.interval = Math.min(Math.max(parseInt(safeBody.interval) || 60, 20), 3600);
+    await kumaEmit('editMonitor', { ...monitor, ...safeBody, id });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
