@@ -874,6 +874,16 @@
   let currentConfig = null;
   let isDark = true;
 
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   // ── AUTH ──────────────────────────────────────────────────────────────────
   async function login() {
     const pwd = document.getElementById('pwd-input').value;
@@ -955,8 +965,8 @@
         total++; if (isUp) up++; uptimes.push(uptime);
         html += `<div class="row">
           <div class="dot ${isUp?'up':'down'}"></div>
-          <div class="row-name">${m.name}</div>
-          <div class="row-group">${name}</div>
+          <div class="row-name">${escapeHtml(m.name)}</div>
+          <div class="row-group">${escapeHtml(name)}</div>
           <div class="uptime-badge" style="color:${uptime>=99?'var(--green)':uptime>=95?'#f59e0b':'var(--red)'}">${uptime}%</div>
         </div>`;
       });
@@ -1007,10 +1017,10 @@
         return last && last.status === 1;
       }).length;
 
-      html += `<div class="card" id="gcard-${group.id || name}" draggable="true" data-gid="${group.id || name}" ondragstart="dragStartGroup(event,this)" ondragover="dragOverGroup(event)" ondrop="dropGroup(event,this)" ondragleave="this.classList.remove('drag-over')" style="margin-bottom:16px">
+      html += `<div class="card" id="gcard-${group.id || escapeHtml(name)}" draggable="true" data-gid="${group.id || escapeHtml(name)}" ondragstart="dragStartGroup(event,this)" ondragover="dragOverGroup(event)" ondrop="dropGroup(event,this)" ondragleave="this.classList.remove('drag-over')" style="margin-bottom:16px">
         <div class="card-head">
           <span class="drag-handle" title="Glisser pour réordonner groupes">⠿</span>
-          <span class="card-title">${name} <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span></span>
+          <span class="card-title">${escapeHtml(name)} <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span></span>
         </div>`;
 
       group.monitorList.forEach(m => {
@@ -1021,17 +1031,17 @@
         const displayName = customNames[m.id] || m.name;
         const link = customLinks[m.id] || kumaData[m.id]?.url || '';
 
-        html += `<div class="row" id="row-${m.id}" draggable="true" data-mid="${m.id}" data-gname="${name}" ondragstart="dragStartRow(event,this)" ondragover="dragOverRow(event)" ondrop="dropRow(event,this)" ondragleave="this.classList.remove('drag-over')" style="${isHidden?'opacity:0.4':''}">
+        html += `<div class="row" id="row-${m.id}" draggable="true" data-mid="${m.id}" data-gname="${escapeHtml(name)}" ondragstart="dragStartRow(event,this)" ondragover="dragOverRow(event)" ondrop="dropRow(event,this)" ondragleave="this.classList.remove('drag-over')" style="${isHidden?'opacity:0.4':''}">
           <span class="drag-handle" title="Glisser pour réordonner">⠿</span>
           <div class="dot ${isUp?'up':'down'}"></div>
-          <input class="inline-input" value="${displayName}" id="name-${m.id}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
-          <input class="link-input" value="${link}" id="link-${m.id}" placeholder="https://... (lien optionnel)" title="Lien du site hébergeur">
+          <input class="inline-input" value="${escapeHtml(displayName)}" id="name-${m.id}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
+          <input class="link-input" value="${escapeHtml(link)}" id="link-${m.id}" placeholder="https://... (lien optionnel)" title="Lien du site hébergeur">
           <button class="action-btn" onclick="saveInstance(${m.id})">💾 Sauv.</button>
           <button class="action-btn ${isHidden?'success':''}" onclick="toggleHide(${m.id}, this)">
             ${isHidden?'👁️ Afficher':'🚫 Masquer'}
           </button>
           <button class="btn-pause" onclick="toggleMonitor(${m.id}, true)" title="Mettre en pause dans Uptime Kuma">⏸</button>
-          <button class="btn-delete" onclick="deleteMonitor(${m.id}, '${(displayName).replace(/'/g,"\\'")}')">🗑️</button>
+          <button class="btn-delete" onclick="deleteMonitor(${m.id}, '${escapeHtml(displayName).replace(/'/g,"\\'")}')">🗑️</button>
         </div>`;
       });
 
@@ -1300,20 +1310,20 @@
       monitors.sort((a,b) => a.name.localeCompare(b.name)).forEach(m => {
         html += `<div class="monitor-row" id="mrow-${m.id}">
           <div class="dot ${m.active ? 'up' : 'down'}"></div>
-          <div class="monitor-name">${m.name}</div>
-          <input class="monitor-url" value="${m.url}" id="murl-${m.id}" placeholder="https://...">
-          <span class="monitor-type">${m.type}</span>
+          <div class="monitor-name">${escapeHtml(m.name)}</div>
+          <input class="monitor-url" value="${escapeHtml(m.url)}" id="murl-${m.id}" placeholder="https://...">
+          <span class="monitor-type">${escapeHtml(m.type)}</span>
           <span class="monitor-status ${m.active ? 'active' : 'paused'}">${m.active ? '▶ Actif' : '⏸ Pausé'}</span>
           <button class="action-btn" onclick="saveMonitorUrl(${m.id})">💾 Sauv.</button>
           <button class="btn-pause ${!m.active ? 'resume' : ''}" onclick="toggleMonitor(${m.id}, ${m.active})">
             ${m.active ? '⏸ Pause' : '▶ Reprendre'}
           </button>
-          <button class="btn-delete" onclick="deleteMonitor(${m.id}, '${m.name.replace(/'/g, "\\'")}')">🗑️</button>
+          <button class="btn-delete" onclick="deleteMonitor(${m.id}, '${escapeHtml(m.name).replace(/'/g, "\\'")}')">🗑️</button>
         </div>`;
       });
       document.getElementById('monitors-list').innerHTML = html || '<div style="padding:20px;color:var(--muted);text-align:center">Aucun monitor</div>';
     } catch(e) {
-      document.getElementById('monitors-list').innerHTML = `<div style="padding:20px;color:var(--red);text-align:center">❌ ${e.message}</div>`;
+      document.getElementById('monitors-list').innerHTML = `<div style="padding:20px;color:var(--red);text-align:center">❌ ${escapeHtml(e.message)}</div>`;
     }
   }
 
@@ -1534,7 +1544,7 @@
     sel.innerHTML = '<option value="">— Aucun —</option>';
     groups.forEach(g => {
       const name = g.name?.replace(/\n/g,'').trim() || '';
-      if (g.id) sel.innerHTML += `<option value="${g.id}">${name}</option>`;
+      if (g.id) sel.innerHTML += `<option value="${g.id}">${escapeHtml(name)}</option>`;
     });
   }
 
