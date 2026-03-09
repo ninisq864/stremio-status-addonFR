@@ -702,15 +702,13 @@
             <div class="stat-icon">📈</div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-head">
-            <span class="card-title">Toutes les instances</span>
-            <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600">
-              <span class="pulse">●</span> Temps réel
-            </span>
-          </div>
-          <div id="stats-list"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <span style="font-size:13px;font-weight:700;color:var(--text2)">Groupes</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600">
+            <span class="pulse">●</span> Temps réel
+          </span>
         </div>
+        <div id="stats-list"></div>
       </div>
 
       <!-- INSTANCES (fusionné avec Monitors) -->
@@ -1146,12 +1144,15 @@
         const last = (heartbeats[m.id]||[]).slice(-1)[0];
         return last && last.status === 1;
       }).length;
+      const allUp = groupUp === group.monitorList.length;
 
-      html += `<div style="margin-bottom:0">
-        <div class="group-header">
-          ${logo ? `<img class="group-header-logo" src="${escapeHtml(logo)}" onerror="this.style.display='none'">` : ''}
-          <span class="group-header-name">${escapeHtml(name)}</span>
-          <span class="group-header-count">${groupUp}/${group.monitorList.length} en ligne</span>
+      html += `<div class="card" style="margin-bottom:16px">
+        <div class="card-head" style="background:var(--surface2)">
+          <div style="display:flex;align-items:center;gap:10px">
+            ${logo ? `<img style="width:28px;height:28px;border-radius:7px;object-fit:contain;border:1px solid var(--border);background:var(--surface)" src="${escapeHtml(logo)}" onerror="this.style.display='none'">` : ''}
+            <span class="card-title">${escapeHtml(name)}</span>
+          </div>
+          <span style="font-size:11px;font-weight:600;color:${allUp?'var(--green)':'#f59e0b'}">${groupUp}/${group.monitorList.length} en ligne</span>
         </div>`;
 
       group.monitorList.forEach(m => {
