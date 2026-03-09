@@ -485,6 +485,24 @@
 
     .pulse { animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+    .login-error { font-size: 12px; color: var(--red); text-align: center; margin-bottom: 12px; padding: 8px 12px; background: rgba(229,62,62,0.08); border: 1px solid rgba(229,62,62,0.2); border-radius: 8px; }
+    #login-screen { background: var(--bg); }
+    #login-screen::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 500px;
+      background: radial-gradient(ellipse, rgba(229,62,62,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
 
     /* MONITORS */
     .monitor-row {
@@ -559,10 +577,14 @@
     <div class="login-sub">StremioFR Status Addon</div>
     <div class="field">
       <label>Mot de passe</label>
-      <input type="password" id="pwd-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+      <input type="password" id="pwd-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()" autocomplete="current-password">
     </div>
-    <div class="login-error" id="login-error">❌ Mot de passe incorrect</div>
-    <button class="btn-primary" onclick="login()">Accéder →</button>
+    <div class="login-error" id="login-error" style="display:none"></div>
+    <div id="login-attempts" style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></div>
+    <button class="btn-primary" id="login-btn" onclick="login()">Accéder →</button>
+    <div id="login-loading" style="display:none;text-align:center;margin-top:12px;font-size:13px;color:var(--muted)">
+      <span style="animation:pulse 1s infinite">Vérification...</span>
+    </div>
   </div>
 </div>
 
@@ -873,6 +895,7 @@
   let allData = null;
   let currentConfig = null;
   let isDark = true;
+  let loginCooldown = false;
 
   function escapeHtml(str) {
     if (str === null || str === undefined) return '';
@@ -885,30 +908,111 @@
   }
 
   // ── AUTH ──────────────────────────────────────────────────────────────────
+  function togglePwd() {
+    const input = document.getElementById('pwd-input');
+    const btn = document.getElementById('pwd-toggle');
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🔒'; }
+    else { input.type = 'password'; btn.textContent = '👁️'; }
+  }
+
+  function showLoginError(msg) {
+    const el = document.getElementById('login-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function setLoginLoading(loading) {
+    const btn = document.getElementById('login-btn');
+    btn.disabled = loading;
+    btn.style.opacity = loading ? '0.5' : '1';
+    document.getElementById('login-loading').style.display = loading ? 'block' : 'none';
+  }
+
   async function login() {
+    if (loginCooldown) return;
     const pwd = document.getElementById('pwd-input').value;
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pwd })
-    });
-    if (res.ok) {
-      const d = await res.json();
-      token = d.token;
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      init();
-    } else {
-      document.getElementById('login-error').style.display = 'block';
+    if (!pwd) { showLoginError('\u274c Entrez votre mot de passe'); return; }
+
+    setLoginLoading(true);
+    document.getElementById('login-error').style.display = 'none';
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd }),
+        credentials: 'same-origin'
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.token) {
+        token = data.token;
+        // Vérifier que le token fonctionne vraiment avant d'afficher le dashboard
+        const verifyRes = await fetch('/api/config', { headers: { 'x-admin-token': token } });
+        if (!verifyRes.ok) throw new Error('Token invalide');
+
+        sessionStorage.setItem('dash_token', token);
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('pwd-input').value = '';
+        init();
+      } else {
+        showLoginError('\u274c ' + (data.error || 'Mot de passe incorrect'));
+        document.getElementById('pwd-input').value = '';
+        document.getElementById('pwd-input').focus();
+
+        // Cooldown progressif côté client
+        loginCooldown = true;
+        let wait = 2;
+        const attemptsEl = document.getElementById('login-attempts');
+        attemptsEl.style.display = 'block';
+        const countdown = setInterval(() => {
+          attemptsEl.textContent = 'R\u00e9essai dans ' + wait + 's...';
+          wait--;
+          if (wait < 0) {
+            clearInterval(countdown);
+            loginCooldown = false;
+            attemptsEl.style.display = 'none';
+          }
+        }, 1000);
+      }
+    } catch(e) {
+      showLoginError('\u274c Erreur de connexion au serveur');
+    } finally {
+      setLoginLoading(false);
     }
   }
 
   function logout() {
     token = '';
+    sessionStorage.removeItem('dash_token');
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('pwd-input').value = '';
+    document.getElementById('login-error').style.display = 'none';
   }
+
+  // Restaurer session si token encore valide
+  async function tryRestoreSession() {
+    const saved = sessionStorage.getItem('dash_token');
+    if (!saved) return false;
+    try {
+      const res = await fetch('/api/config', { headers: { 'x-admin-token': saved } });
+      if (res.ok) {
+        token = saved;
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        init();
+        return true;
+      }
+    } catch(e) {}
+    sessionStorage.removeItem('dash_token');
+    return false;
+  }
+
+  // Au chargement : tenter de restaurer la session, sinon afficher le login
+  tryRestoreSession();
 
   // ── INIT ──────────────────────────────────────────────────────────────────
   async function init() {

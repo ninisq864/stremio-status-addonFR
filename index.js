@@ -442,7 +442,7 @@ function logConnection(ip, success) {
   console.log(`${success ? '✅' : '❌'} Tentative login — IP: ${ip} — ${success ? 'Succès' : 'Échec'}`);
 }
 
-app.post('/api/login', cookieAuthMiddleware, loginRateLimit, async (req, res) => {
+app.post('/api/login', loginRateLimit, async (req, res) => {
   const ip = req.ip;
   const { password } = req.body;
   const bruteCheck = checkBruteForce(ip);
