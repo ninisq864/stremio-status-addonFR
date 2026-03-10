@@ -144,12 +144,15 @@ function connectToKuma() {
   });
 }
 
-function kumaEmit(event, data) {
+function kumaEmit(event, data, timeout = 15000) {
   return new Promise((resolve, reject) => {
     if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
+    const timer = setTimeout(() => reject(new Error('Timeout Kuma (15s)')), timeout);
     kumaSocket.emit(event, data, (res) => {
+      clearTimeout(timer);
+      console.log(`📡 Kuma [${event}] réponse:`, JSON.stringify(res));
       if (res && res.ok === false) reject(new Error(res.msg || 'Erreur Kuma'));
-      else resolve(res);
+      else resolve(res || {});
     });
   });
 }
@@ -442,7 +445,7 @@ function logConnection(ip, success) {
   console.log(`${success ? '✅' : '❌'} Tentative login — IP: ${ip} — ${success ? 'Succès' : 'Échec'}`);
 }
 
-app.post('/api/login', cookieAuthMiddleware, loginRateLimit, async (req, res) => {
+app.post('/api/login', loginRateLimit, async (req, res) => {
   const ip = req.ip;
   const { password } = req.body;
   const bruteCheck = checkBruteForce(ip);
@@ -555,18 +558,18 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
     const parentId = (parent !== undefined && parent !== null && parent !== '') ? parseInt(parent) : null;
     const payload = {
       id: null,
+      type: type === 'https' ? 'http' : type,
       name: name.trim(),
       url: url || '',
-      type: type === 'https' ? 'http' : type,
       interval: safeInterval,
-      active: true,
       retryInterval: safeInterval,
       maxretries: 0,
-      notificationIDList: {},
+      active: true,
       ignoreTls: false,
       upsideDown: false,
+      notificationIDList: {},
       accepted_statuscodes: ['200-299'],
-      proxyId: null,
+      conditions: [],
       ...(parentId !== null ? { parent: parentId } : {}),
     };
     console.log('📡 Ajout monitor Kuma:', JSON.stringify(payload));
@@ -610,7 +613,7 @@ app.put('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
     if (safeBody.url) {
       try { new URL(safeBody.url); } catch { return res.status(400).json({ error: 'url invalide' }); }
     }
-    if (safeBody.interval) safeBody.interval = Math.min(Math.max(parseInt(safeBody.interval) || 60, 20), 3600);
+    if (safeBody.interval) safeBody.interval = Math.min(Math.max(parseInt(safeBody.interval) || 60, 1), 3600);
     await kumaEmit('editMonitor', { ...monitor, ...safeBody, id });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
