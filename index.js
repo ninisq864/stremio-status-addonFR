@@ -133,15 +133,12 @@ function connectToKuma() {
     console.log(`📊 ${Object.keys(data).length} monitors chargés`);
   });
 
-  // Recevoir les données complètes de la status page (avec ID interne)
+  // Recevoir l'ID interne de la status page
   kumaSocket.on('statusPageList', (data) => {
     if (data) {
       const page = Object.values(data).find(p => p.slug === STATUS_SLUG);
       if (page) {
-        if (!kumaStatusPageData) kumaStatusPageData = {};
-        kumaStatusPageData.id = page.id;
-        kumaStatusPageData.slug = page.slug;
-        kumaStatusPageData.title = page.title;
+        kumaStatusPageId = page.id;
         console.log(`📄 statusPageList - ID: ${page.id}, slug: ${page.slug}`);
       }
     }
@@ -168,23 +165,20 @@ function connectToKuma() {
 }
 
 // Récupère la structure actuelle de la status page depuis l'API publique
-// Stocke la status page reçue via Socket.IO event
-let kumaStatusPageData = null;
+// ID interne de la status page (reçu via statusPageList event)
+let kumaStatusPageId = null;
 
-// Récupère la structure complète de la status page
+// Récupère la structure complète : ID depuis Socket.IO + groupes depuis API publique
 async function fetchStatusPageStructure() {
   try {
-    // Utiliser les données en mémoire si disponibles
-    if (kumaStatusPageData) {
-      console.log('📄 Status page depuis mémoire - ID:', kumaStatusPageData.id, 'groupes:', kumaStatusPageData.publicGroupList?.length);
-      return kumaStatusPageData;
-    }
-    // Sinon fetch via API publique + demander l'ID via l'API Kuma
+    // Fetch les groupes depuis l'API publique (toujours à jour)
     const res = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`, {
       headers: { Accept: 'application/json' }
     });
     const pageData = res.data;
-    console.log('📄 Status page via API publique, id dans data:', pageData?.id);
+    // Injecter l'ID interne si on l'a reçu via Socket.IO
+    if (kumaStatusPageId) pageData.id = kumaStatusPageId;
+    console.log(`📄 Status page - ID: ${pageData.id} groupes: ${pageData.publicGroupList?.length}`);
     return pageData;
   } catch(e) {
     console.error('❌ Erreur fetch status page:', e.message);
