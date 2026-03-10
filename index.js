@@ -27,7 +27,6 @@ async function initPassword() {
   if (!ADMIN_PASSWORD_HASH) {
     ADMIN_PASSWORD_HASH = await bcrypt.hash(ADMIN_PASSWORD_RAW, BCRYPT_ROUNDS);
     console.log('🔐 Mot de passe hashé au démarrage');
-    console.log(`ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}`);
   }
 }
 
@@ -110,6 +109,7 @@ let kumaSocket = null;
 let kumaConnected = false;
 let kumaMonitors = {};
 let kumaReady = false;
+let kumaStatusPage = null;
 
 function connectToKuma() {
   if (!UPTIME_KUMA_USERNAME || !UPTIME_KUMA_PASSWORD) {
@@ -133,6 +133,15 @@ function connectToKuma() {
     console.log(`📊 ${Object.keys(data).length} monitors chargés`);
   });
 
+  // Charger la status page au démarrage
+  kumaSocket.on('connect', () => {
+    setTimeout(() => kumaSocket.emit('getStatusPage', STATUS_SLUG), 2000);
+  });
+
+  kumaSocket.on('statusPage', (data) => {
+    if (data) { kumaStatusPage = data; console.log('📄 Status page chargée'); }
+  });
+
   kumaSocket.on('disconnect', () => {
     console.warn('⚠️ Déconnecté de Uptime Kuma');
     kumaConnected = false;
@@ -144,15 +153,117 @@ function connectToKuma() {
   });
 }
 
-function kumaEmit(event, data, timeout = 15000) {
+// Récupère la structure actuelle de la status page depuis l'API publique
+async function fetchStatusPageStructure() {
+  try {
+    const res = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`, {
+      headers: { Accept: 'application/json' }
+    });
+    return res.data;
+  } catch(e) {
+    console.error('❌ Erreur fetch status page:', e.message);
+    return null;
+  }
+}
+
+// Ajoute un monitor ou groupe à la status page Kuma
+async function addToStatusPage(monitorId, groupName, isGroup = false) {
+  try {
+    const pageData = await fetchStatusPageStructure();
+    if (!pageData) return false;
+
+    const publicGroupList = pageData.publicGroupList || [];
+
+    if (isGroup) {
+      // Ajouter un nouveau groupe à la status page
+      publicGroupList.push({
+        name: groupName,
+        weight: publicGroupList.length,
+        monitorList: []
+      });
+    } else {
+      // Trouver le groupe cible et y ajouter le monitor
+      let targetGroup = publicGroupList.find(g =>
+        g.name.replace(/\n/g,'').trim().toLowerCase() === groupName.toLowerCase()
+      );
+      if (!targetGroup) {
+        // Groupe pas trouvé, créer un groupe temporaire "Non classé"
+        targetGroup = { name: groupName || 'Non classé', weight: publicGroupList.length, monitorList: [] };
+        publicGroupList.push(targetGroup);
+      }
+      targetGroup.monitorList.push({ id: monitorId });
+    }
+
+    // Sauvegarder via Socket.IO
+    const savePayload = {
+      id: pageData.id,
+      slug: STATUS_SLUG,
+      title: pageData.title || 'StremioFR Addons',
+      description: pageData.description || '',
+      icon: pageData.icon || '/icon.svg',
+      theme: pageData.theme || 'dark',
+      published: pageData.published !== false,
+      showTags: pageData.showTags || false,
+      domainNameList: pageData.domainNameList || [],
+      customCSS: pageData.customCSS || '',
+      footerText: pageData.footerText || '',
+      showPoweredBy: pageData.showPoweredBy !== false,
+      publicGroupList,
+    };
+
+    await kumaEmit('saveStatusPage', savePayload);
+    await kumaEmit('getStatusPage', STATUS_SLUG);
+    console.log(`✅ Status page mise à jour: ${isGroup ? 'groupe' : 'monitor'} ajouté`);
+    cache = { data: null, ts: 0 }; // invalider le cache
+    return true;
+  } catch(e) {
+    console.error('❌ Erreur addToStatusPage:', e.message);
+    return false;
+  }
+}
+
+// Retire un monitor de la status page
+async function removeFromStatusPage(monitorId) {
+  try {
+    const pageData = await fetchStatusPageStructure();
+    if (!pageData) return false;
+
+    const publicGroupList = (pageData.publicGroupList || []).map(g => ({
+      ...g,
+      monitorList: g.monitorList.filter(m => m.id !== monitorId)
+    }));
+
+    const savePayload = {
+      id: pageData.id,
+      slug: STATUS_SLUG,
+      title: pageData.title || 'StremioFR Addons',
+      description: pageData.description || '',
+      icon: pageData.icon || '/icon.svg',
+      theme: pageData.theme || 'dark',
+      published: pageData.published !== false,
+      showTags: pageData.showTags || false,
+      domainNameList: pageData.domainNameList || [],
+      customCSS: pageData.customCSS || '',
+      footerText: pageData.footerText || '',
+      showPoweredBy: pageData.showPoweredBy !== false,
+      publicGroupList,
+    };
+
+    await kumaEmit('saveStatusPage', savePayload);
+    cache = { data: null, ts: 0 };
+    return true;
+  } catch(e) {
+    console.error('❌ Erreur removeFromStatusPage:', e.message);
+    return false;
+  }
+}
+
+function kumaEmit(event, data) {
   return new Promise((resolve, reject) => {
     if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
-    const timer = setTimeout(() => reject(new Error('Timeout Kuma (15s)')), timeout);
     kumaSocket.emit(event, data, (res) => {
-      clearTimeout(timer);
-      console.log(`📡 Kuma [${event}] réponse:`, JSON.stringify(res));
       if (res && res.ok === false) reject(new Error(res.msg || 'Erreur Kuma'));
-      else resolve(res || {});
+      else resolve(res);
     });
   });
 }
@@ -168,8 +279,11 @@ function generateToken(payload) {
 function verifyToken(token) {
   try {
     const [header, body, sig] = token.split('.');
+    if (!header || !body || !sig) return null;
     const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(`${header}.${body}`).digest('base64url');
-    if (sig !== expectedSig) return null;
+    const sigBuf = Buffer.from(sig);
+    const expectedBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) return null;
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
     if (payload.exp < Date.now()) return null;
     return payload;
@@ -202,6 +316,7 @@ function resetAttempts(ip) { loginAttempts.delete(ip); }
 
 // ── AUTH MIDDLEWARE ────────────────────────────────────────────────────────────
 function authMiddleware(req, res, next) {
+  res.setHeader('Cache-Control', 'no-store');
   const authHeader = req.headers['authorization'];
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.headers['x-admin-token'];
   if (!token) return res.status(401).json({ error: 'Token manquant' });
@@ -311,19 +426,22 @@ builder.defineCatalogHandler(async ({ extra }) => {
 const addonInterface = builder.getInterface();
 const router = getRouter(addonInterface);
 const app = express();
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '50kb' }));
 app.use(cookieParser());
 
 app.use((req, res, next) => {
-  // HTTPS forcé
+  // HTTPS forcé — utilise req.hostname (safe avec trust proxy) au lieu de req.headers.host (injectable)
   if (req.headers['x-forwarded-proto'] === 'http') {
-    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    return res.redirect(301, `https://${req.hostname}${req.originalUrl}`);
   }
   // Headers sécurité
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline'; " +
@@ -361,6 +479,14 @@ function loginRateLimit(req, res, next) {
   if (w.count > 10) return res.status(429).json({ error: 'Trop de tentatives de connexion, réessayez dans 1 minute.' });
   next();
 }
+
+// Nettoyage périodique des Maps de rate limiting (évite fuite mémoire)
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, w] of requestCounts) { if (now - w.start > 120000) requestCounts.delete(ip); }
+  for (const [ip, w] of loginRateCounts) { if (now - w.start > 120000) loginRateCounts.delete(ip); }
+  for (const [ip, a] of loginAttempts) { if (now - a.lastAttempt > BLOCK_DURATION + ATTEMPT_WINDOW) loginAttempts.delete(ip); }
+}, 5 * 60 * 1000);
 
 app.get('/', (req, res) => res.redirect('/configure'));
 app.get('/configure', (req, res) => res.sendFile(path.join(__dirname, 'configure.html')));
@@ -445,7 +571,8 @@ function logConnection(ip, success) {
   console.log(`${success ? '✅' : '❌'} Tentative login — IP: ${ip} — ${success ? 'Succès' : 'Échec'}`);
 }
 
-app.post('/api/login', loginRateLimit, async (req, res) => {
+app.post('/api/login', cookieAuthMiddleware, loginRateLimit, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const ip = req.ip;
   const { password } = req.body;
   const bruteCheck = checkBruteForce(ip);
@@ -453,7 +580,8 @@ app.post('/api/login', loginRateLimit, async (req, res) => {
     logConnection(ip, false);
     return res.status(429).json({ error: `Trop de tentatives. Réessayez dans ${bruteCheck.remainingMin} minutes.` });
   }
-  const isValid = await bcrypt.compare(password || '', ADMIN_PASSWORD_HASH);
+  if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Mot de passe requis' });
+  const isValid = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
   if (isValid) {
     resetAttempts(ip);
     logConnection(ip, true);
@@ -484,7 +612,10 @@ app.get('/api/data', async (req, res) => {
   try {
     const data = await getUptimeData();
     res.json({ ...data, cacheAge: Math.round((Date.now() - cache.ts) / 1000) });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Erreur /api/data:', e.message);
+    res.status(500).json({ error: 'Erreur lors de la récupération des données' });
+  }
 });
 
 // Route config publique (logos uniquement, sans données sensibles)
@@ -498,18 +629,51 @@ app.post('/api/config', authMiddleware, async (req, res) => {
   const ALLOWED_FIELDS = [
     'groupPosters', 'hiddenMonitors', 'customNames', 'customLinks',
     'defaultPoster', 'cacheTTL', 'autoIncrementVersion', 'manifestVersion',
-    'hideOffline', 'dashboardToken'
+    'hideOffline'
   ];
   const filtered = {};
   for (const key of ALLOWED_FIELDS) {
     if (key in req.body) filtered[key] = req.body[key];
   }
+  // Validation des valeurs
+  if (filtered.cacheTTL !== undefined) {
+    const ttl = Number(filtered.cacheTTL);
+    if (!Number.isFinite(ttl) || ttl < 5 || ttl > 300) return res.status(400).json({ error: 'cacheTTL doit être entre 5 et 300' });
+    filtered.cacheTTL = ttl;
+  }
+  if (filtered.hiddenMonitors !== undefined) {
+    if (!Array.isArray(filtered.hiddenMonitors) || !filtered.hiddenMonitors.every(v => Number.isInteger(v)))
+      return res.status(400).json({ error: 'hiddenMonitors doit être un tableau de nombres entiers' });
+  }
+  if (filtered.customNames !== undefined) {
+    if (typeof filtered.customNames !== 'object' || Array.isArray(filtered.customNames))
+      return res.status(400).json({ error: 'customNames invalide' });
+    for (const v of Object.values(filtered.customNames)) {
+      if (typeof v !== 'string' || v.length > 100) return res.status(400).json({ error: 'customNames: chaque valeur doit être une chaîne de 100 caractères max' });
+    }
+  }
+  if (filtered.customLinks !== undefined) {
+    if (typeof filtered.customLinks !== 'object' || Array.isArray(filtered.customLinks))
+      return res.status(400).json({ error: 'customLinks invalide' });
+    for (const v of Object.values(filtered.customLinks)) {
+      if (typeof v !== 'string') return res.status(400).json({ error: 'customLinks: chaque valeur doit être une chaîne' });
+      if (v && v !== 'https://') { try { const u = new URL(v); if (!['http:', 'https:'].includes(u.protocol)) throw 0; } catch { return res.status(400).json({ error: `customLinks: url invalide — ${v}` }); } }
+    }
+  }
+  if (filtered.groupPosters !== undefined) {
+    if (typeof filtered.groupPosters !== 'object' || Array.isArray(filtered.groupPosters))
+      return res.status(400).json({ error: 'groupPosters invalide' });
+    for (const v of Object.values(filtered.groupPosters)) {
+      if (typeof v !== 'string') return res.status(400).json({ error: 'groupPosters: chaque valeur doit être une URL' });
+      try { const u = new URL(v); if (!['http:', 'https:'].includes(u.protocol)) throw 0; } catch { return res.status(400).json({ error: `groupPosters: url invalide — ${v}` }); }
+    }
+  }
+  if (filtered.defaultPoster !== undefined) {
+    if (typeof filtered.defaultPoster !== 'string') return res.status(400).json({ error: 'defaultPoster invalide' });
+    try { const u = new URL(filtered.defaultPoster); if (!['http:', 'https:'].includes(u.protocol)) throw 0; } catch { return res.status(400).json({ error: 'defaultPoster: url invalide' }); }
+  }
   const cfg = { ...loadConfig(), ...filtered };
   await saveConfig(cfg);
-  if (cfg.webhookOut) {
-    axios.post(cfg.webhookOut, { event: 'config_updated', ts: Date.now() })
-      .catch(e => console.warn('⚠️ Webhook sortant échoué:', e.message));
-  }
   res.json({ ok: true });
 });
 app.post('/api/cache/refresh', authMiddleware, (req, res) => {
@@ -518,9 +682,12 @@ app.post('/api/cache/refresh', authMiddleware, (req, res) => {
 });
 app.post('/api/change-password', authMiddleware, async (req, res) => {
   const { password } = req.body;
-  if (!password || password.length < 8) return res.status(400).json({ error: 'Mot de passe trop court (min 8 caractères)' });
+  if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Mot de passe requis' });
+  if (password.length < 12) return res.status(400).json({ error: 'Mot de passe trop court (min 12 caractères)' });
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password))
+    return res.status(400).json({ error: 'Le mot de passe doit contenir au moins une minuscule, une majuscule et un chiffre' });
   ADMIN_PASSWORD_HASH = await bcrypt.hash(password, BCRYPT_ROUNDS);
-  res.json({ ok: true, hash: ADMIN_PASSWORD_HASH });
+  res.json({ ok: true });
 });
 
 // ── API UPTIME KUMA ────────────────────────────────────────────────────────────
@@ -552,30 +719,46 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: `type invalide, valeurs acceptées: ${VALID_TYPES.join(', ')}` });
     if (type !== 'group') {
       if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url requise pour un monitor' });
-      try { new URL(url); } catch { return res.status(400).json({ error: 'url invalide' }); }
+      let parsed;
+      try { parsed = new URL(url); } catch { return res.status(400).json({ error: 'url invalide' }); }
+      if (!['http:', 'https:'].includes(parsed.protocol)) return res.status(400).json({ error: 'url doit utiliser http ou https' });
     }
     const safeInterval = Math.min(Math.max(parseInt(interval) || 60, 1), 3600);
     const parentId = (parent !== undefined && parent !== null && parent !== '') ? parseInt(parent) : null;
     const payload = {
       id: null,
-      type: type === 'https' ? 'http' : type,
       name: name.trim(),
       url: url || '',
+      type: type === 'https' ? 'http' : type,
       interval: safeInterval,
+      active: true,
       retryInterval: safeInterval,
       maxretries: 0,
-      active: true,
+      notificationIDList: {},
       ignoreTls: false,
       upsideDown: false,
-      notificationIDList: {},
       accepted_statuscodes: ['200-299'],
       conditions: [],
+      proxyId: null,
       ...(parentId !== null ? { parent: parentId } : {}),
-    };
+    }
     console.log('📡 Ajout monitor Kuma:', JSON.stringify(payload));
     const result = await kumaEmit('add', payload);
     console.log('📡 Résultat add:', JSON.stringify(result));
-    res.json({ ok: true, id: result?.monitorID });
+    const newId = result?.monitorID;
+
+    // Ajouter automatiquement à la status page
+    if (newId) {
+      if (type === 'group') {
+        await addToStatusPage(newId, name.trim(), true);
+      } else {
+        let groupName = 'Non classé';
+        if (parentId && kumaMonitors[parentId]) groupName = kumaMonitors[parentId].name;
+        await addToStatusPage(newId, groupName, false);
+      }
+    }
+
+    res.json({ ok: true, id: newId });
   } catch(e) {
     console.error('❌ Erreur ajout monitor:', e.message);
     res.status(500).json({ error: e.message });
@@ -598,9 +781,15 @@ app.post('/api/kuma/reorder', authMiddleware, async (req, res) => {
   }
 });
 
+function parseMonitorId(str) {
+  const id = parseInt(str, 10);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
 app.put('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseMonitorId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'ID monitor invalide' });
     const monitor = kumaMonitors[id];
     if (!monitor) return res.status(404).json({ error: 'Monitor introuvable' });
     const ALLOWED = ['name', 'url', 'type', 'interval', 'active', 'parent'];
@@ -611,9 +800,11 @@ app.put('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
     if (safeBody.name && (typeof safeBody.name !== 'string' || safeBody.name.length > 100))
       return res.status(400).json({ error: 'name invalide' });
     if (safeBody.url) {
-      try { new URL(safeBody.url); } catch { return res.status(400).json({ error: 'url invalide' }); }
+      let parsed;
+      try { parsed = new URL(safeBody.url); } catch { return res.status(400).json({ error: 'url invalide' }); }
+      if (!['http:', 'https:'].includes(parsed.protocol)) return res.status(400).json({ error: 'url doit utiliser http ou https' });
     }
-    if (safeBody.interval) safeBody.interval = Math.min(Math.max(parseInt(safeBody.interval) || 60, 1), 3600);
+    if (safeBody.interval) safeBody.interval = Math.min(Math.max(parseInt(safeBody.interval) || 60, 20), 3600);
     await kumaEmit('editMonitor', { ...monitor, ...safeBody, id });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -621,29 +812,41 @@ app.put('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
 
 app.delete('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
   try {
-    await kumaEmit('deleteMonitor', parseInt(req.params.id));
+    const id = parseMonitorId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'ID monitor invalide' });
+    await removeFromStatusPage(id); // retirer de la status page
+    await kumaEmit('deleteMonitor', id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/kuma/monitors/:id/pause', authMiddleware, async (req, res) => {
   try {
-    await kumaEmit('pauseMonitor', parseInt(req.params.id));
+    const id = parseMonitorId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'ID monitor invalide' });
+    await kumaEmit('pauseMonitor', id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/kuma/monitors/:id/resume', authMiddleware, async (req, res) => {
   try {
-    await kumaEmit('resumeMonitor', parseInt(req.params.id));
+    const id = parseMonitorId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'ID monitor invalide' });
+    await kumaEmit('resumeMonitor', id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'stremiofr-webhook';
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || crypto.randomBytes(32).toString('hex');
 app.post('/webhook/refresh', (req, res) => {
-  const secret = req.headers['x-webhook-secret'] || req.query.secret;
-  if (secret !== WEBHOOK_SECRET) return res.status(401).json({ error: 'Non autorisé' });
+  const secret = req.headers['x-webhook-secret'];
+  if (!secret || typeof secret !== 'string') return res.status(401).json({ error: 'Non autorisé' });
+  const secretBuf = Buffer.from(secret);
+  const expectedBuf = Buffer.from(WEBHOOK_SECRET);
+  if (secretBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(secretBuf, expectedBuf)) {
+    return res.status(401).json({ error: 'Non autorisé' });
+  }
   cache = { data: null, ts: 0 };
   res.json({ ok: true });
 });
