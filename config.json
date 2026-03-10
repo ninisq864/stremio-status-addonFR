@@ -59,5 +59,7 @@
     "23": "https://wastream.striho.top/configure"
   },
   "defaultPoster": "https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png",
-  "cacheTTL": 25
+  "cacheTTL": 25,
+  "autoIncrementVersion": true,
+  "manifestVersion": "1.0.1"
 }
