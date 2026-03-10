@@ -133,6 +133,20 @@ function connectToKuma() {
     console.log(`📊 ${Object.keys(data).length} monitors chargés`);
   });
 
+  // Recevoir les données complètes de la status page (avec ID interne)
+  kumaSocket.on('statusPageList', (data) => {
+    if (data) {
+      const page = Object.values(data).find(p => p.slug === STATUS_SLUG);
+      if (page) {
+        if (!kumaStatusPageData) kumaStatusPageData = {};
+        kumaStatusPageData.id = page.id;
+        kumaStatusPageData.slug = page.slug;
+        kumaStatusPageData.title = page.title;
+        console.log(`📄 statusPageList - ID: ${page.id}, slug: ${page.slug}`);
+      }
+    }
+  });
+
   // Charger la status page au démarrage
   kumaSocket.on('connect', () => {
     setTimeout(() => kumaSocket.emit('getStatusPage', STATUS_SLUG), 2000);
@@ -154,23 +168,24 @@ function connectToKuma() {
 }
 
 // Récupère la structure actuelle de la status page depuis l'API publique
-// Récupère la status page via Socket.IO (pour avoir l'ID interne)
+// Stocke la status page reçue via Socket.IO event
+let kumaStatusPageData = null;
+
+// Récupère la structure complète de la status page
 async function fetchStatusPageStructure() {
   try {
-    // D'abord essayer via Socket.IO si connecté
-    if (kumaSocket && kumaReady) {
-      const spData = await kumaEmit('getStatusPage', STATUS_SLUG);
-      if (spData) {
-        console.log('📄 Status page via Socket.IO - ID:', spData.id, 'groupes:', spData.publicGroupList?.length);
-        return spData;
-      }
+    // Utiliser les données en mémoire si disponibles
+    if (kumaStatusPageData) {
+      console.log('📄 Status page depuis mémoire - ID:', kumaStatusPageData.id, 'groupes:', kumaStatusPageData.publicGroupList?.length);
+      return kumaStatusPageData;
     }
-    // Fallback: API publique
+    // Sinon fetch via API publique + demander l'ID via l'API Kuma
     const res = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`, {
       headers: { Accept: 'application/json' }
     });
-    console.log('📄 Status page via API publique');
-    return res.data;
+    const pageData = res.data;
+    console.log('📄 Status page via API publique, id dans data:', pageData?.id);
+    return pageData;
   } catch(e) {
     console.error('❌ Erreur fetch status page:', e.message);
     return null;
