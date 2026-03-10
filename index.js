@@ -565,12 +565,8 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
       notificationIDList: {},
       ignoreTls: false,
       upsideDown: false,
-      maxRedirects: 10,
       accepted_statuscodes: ['200-299'],
-      dns_resolve_type: 'A',
-      dns_resolve_server: '1.1.1.1',
       proxyId: null,
-      httpBodyEncoding: 'json',
       ...(parentId !== null ? { parent: parentId } : {}),
     };
     console.log('📡 Ajout monitor Kuma:', JSON.stringify(payload));
