@@ -144,12 +144,15 @@ function connectToKuma() {
   });
 }
 
-function kumaEmit(event, data) {
+function kumaEmit(event, data, timeout = 10000) {
   return new Promise((resolve, reject) => {
     if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
+    const timer = setTimeout(() => reject(new Error('Timeout Kuma')), timeout);
     kumaSocket.emit(event, data, (res) => {
+      clearTimeout(timer);
+      console.log('Kuma [' + event + '] reponse:', JSON.stringify(res));
       if (res && res.ok === false) reject(new Error(res.msg || 'Erreur Kuma'));
-      else resolve(res);
+      else resolve(res || {});
     });
   });
 }
@@ -554,9 +557,14 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
     const safeInterval = Math.min(Math.max(parseInt(interval) || 60, 1), 3600);
     const payload = { name: name.trim(), url: url || '', type, interval: safeInterval, active: true };
     if (parent !== undefined && parent !== null && parent !== '') payload.parent = parseInt(parent);
+    console.log('📡 Ajout monitor Kuma:', JSON.stringify(payload));
     const result = await kumaEmit('add', payload);
-    res.json({ ok: true, id: result.monitorID });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+    console.log('📡 Résultat add:', JSON.stringify(result));
+    res.json({ ok: true, id: result?.monitorID });
+  } catch(e) {
+    console.error('❌ Erreur ajout monitor:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Réordonner les monitors (drag & drop)
