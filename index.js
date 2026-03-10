@@ -154,11 +154,22 @@ function connectToKuma() {
 }
 
 // Récupère la structure actuelle de la status page depuis l'API publique
+// Récupère la status page via Socket.IO (pour avoir l'ID interne)
 async function fetchStatusPageStructure() {
   try {
+    // D'abord essayer via Socket.IO si connecté
+    if (kumaSocket && kumaReady) {
+      const spData = await kumaEmit('getStatusPage', STATUS_SLUG);
+      if (spData) {
+        console.log('📄 Status page via Socket.IO - ID:', spData.id, 'groupes:', spData.publicGroupList?.length);
+        return spData;
+      }
+    }
+    // Fallback: API publique
     const res = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`, {
       headers: { Accept: 'application/json' }
     });
+    console.log('📄 Status page via API publique');
     return res.data;
   } catch(e) {
     console.error('❌ Erreur fetch status page:', e.message);
@@ -169,32 +180,40 @@ async function fetchStatusPageStructure() {
 // Ajoute un monitor ou groupe à la status page Kuma
 async function addToStatusPage(monitorId, groupName, isGroup = false) {
   try {
+    console.log(`📄 addToStatusPage: monitorId=${monitorId} groupName=${groupName} isGroup=${isGroup}`);
     const pageData = await fetchStatusPageStructure();
-    if (!pageData) return false;
+    if (!pageData) { console.error('❌ Pas de données status page'); return false; }
+    console.log(`📄 pageData.id=${pageData.id} groupes=${pageData.publicGroupList?.length}`);
 
-    const publicGroupList = pageData.publicGroupList || [];
+    // Reconstruire publicGroupList avec la structure complète attendue par Kuma
+    const publicGroupList = (pageData.publicGroupList || []).map((g, i) => ({
+      id: g.id || undefined,
+      name: g.name,
+      weight: g.weight ?? i,
+      monitorList: (g.monitorList || []).map(m => ({
+        id: m.id,
+        sendUrl: m.sendUrl || false,
+      })),
+    }));
 
     if (isGroup) {
-      // Ajouter un nouveau groupe à la status page
       publicGroupList.push({
         name: groupName,
         weight: publicGroupList.length,
-        monitorList: []
+        monitorList: [],
       });
     } else {
-      // Trouver le groupe cible et y ajouter le monitor
       let targetGroup = publicGroupList.find(g =>
         g.name.replace(/\n/g,'').trim().toLowerCase() === groupName.toLowerCase()
       );
       if (!targetGroup) {
-        // Groupe pas trouvé, créer un groupe temporaire "Non classé"
+        console.warn(`⚠️ Groupe "${groupName}" non trouvé, création auto`);
         targetGroup = { name: groupName || 'Non classé', weight: publicGroupList.length, monitorList: [] };
         publicGroupList.push(targetGroup);
       }
-      targetGroup.monitorList.push({ id: monitorId });
+      targetGroup.monitorList.push({ id: monitorId, sendUrl: false });
     }
 
-    // Sauvegarder via Socket.IO
     const savePayload = {
       id: pageData.id,
       slug: STATUS_SLUG,
@@ -211,13 +230,13 @@ async function addToStatusPage(monitorId, groupName, isGroup = false) {
       publicGroupList,
     };
 
-    await kumaEmit('saveStatusPage', savePayload);
-    await kumaEmit('getStatusPage', STATUS_SLUG);
-    console.log(`✅ Status page mise à jour: ${isGroup ? 'groupe' : 'monitor'} ajouté`);
-    cache = { data: null, ts: 0 }; // invalider le cache
+    console.log('📄 saveStatusPage payload groupes:', publicGroupList.map(g => g.name + ':' + g.monitorList.length));
+    const saveResult = await kumaEmit('saveStatusPage', savePayload);
+    console.log('📄 saveStatusPage result:', JSON.stringify(saveResult));
+    cache = { data: null, ts: 0 };
     return true;
   } catch(e) {
-    console.error('❌ Erreur addToStatusPage:', e.message);
+    console.error('❌ Erreur addToStatusPage:', e.message, e.stack?.split('\n')[1]);
     return false;
   }
 }
