@@ -1076,22 +1076,15 @@
     return false;
   }
 
-  // Intercepteur global : si une requête retourne 401, retour au login
+  // Intercepteur global : si une requête auth retourne 401, retour au login
   const _origFetch = window.fetch;
   window.fetch = async function(...args) {
     const res = await _origFetch(...args);
-    if (res.status === 401 && token) {
-      const clone = res.clone();
-      clone.json().then(d => {
-        if (d.error === 'Token manquant' || d.error === 'Token invalide ou expiré') {
-          token = '';
-          sessionStorage.removeItem('dash_token');
-          document.getElementById('dashboard').style.display = 'none';
-          document.getElementById('login-screen').style.display = 'flex';
-          document.getElementById('login-error').textContent = '⚠️ Session expirée, reconnectez-vous';
-          document.getElementById('login-error').style.display = 'block';
-        }
-      }).catch(()=>{});
+    // Détecter toute requête avec token qui retourne 401
+    const reqUrl = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
+    const hasToken = args[1]?.headers?.['x-admin-token'];
+    if (res.status === 401 && hasToken) {
+      forceLogout('⚠️ Session expirée, reconnectez-vous');
     }
     return res;
   };
@@ -1100,31 +1093,59 @@
   tryRestoreSession();
 
   // ── INIT ──────────────────────────────────────────────────────────────────
+  function forceLogout(msg) {
+    token = '';
+    sessionStorage.removeItem('dash_token');
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-error').textContent = msg || '⚠️ Session expirée, reconnectez-vous';
+    document.getElementById('login-error').style.display = 'block';
+  }
+
+  async function verifyAuth() {
+    if (!token) return false;
+    try {
+      const res = await _origFetch('/api/config', { headers: { 'x-admin-token': token } });
+      return res.ok;
+    } catch(e) { return false; }
+  }
+
   async function init() {
+    // Vérification backend obligatoire avant tout chargement
+    if (!await verifyAuth()) { forceLogout('⚠️ Token invalide — reconnectez-vous'); return; }
     await Promise.all([loadData(), loadConfig()]);
     setInterval(loadData, 30000);
     setInterval(updateCacheAge, 1000);
   }
 
   async function loadData() {
-    const res = await fetch('/api/data');
-    allData = await res.json();
-    renderStats();
-    renderInstances({});
-    updateCacheAge();
+    // Vérifier que le token est toujours valide avant de charger
+    if (!token) { forceLogout('⚠️ Session invalide'); return; }
+    try {
+      const res = await fetch('/api/data');
+      if (!res.ok) return;
+      allData = await res.json();
+      renderStats();
+      renderInstances({});
+      updateCacheAge();
+    } catch(e) { /* erreur réseau, on ne crash pas */ }
   }
 
+  let configRetries = 0;
   async function loadConfig() {
+    if (!token) { forceLogout('⚠️ Session invalide'); return; }
     try {
       const res = await fetch('/api/config', { headers: { 'x-admin-token': token } });
+      if (res.status === 401) { forceLogout('⚠️ Session expirée, reconnectez-vous'); return; }
       if (!res.ok) throw new Error('Config non disponible');
+      configRetries = 0;
       currentConfig = await res.json();
       renderLogos();
       if (currentConfig.cacheTTL) document.getElementById('setting-ttl').value = currentConfig.cacheTTL;
     } catch(e) {
-      console.error('❌ Erreur chargement config:', e.message);
-      // Retry après 1s
-      setTimeout(loadConfig, 1000);
+      configRetries++;
+      if (configRetries >= 3) { console.error('❌ Config inaccessible après 3 tentatives'); return; }
+      setTimeout(loadConfig, 2000);
     }
   }
 
@@ -1237,31 +1258,34 @@
         return last && last.status === 1;
       }).length;
 
-      html += `<div class="card" id="gcard-${group.id || escapeHtml(name)}" draggable="true" data-gid="${group.id || escapeHtml(name)}" ondragstart="dragStartGroup(event,this)" ondragover="dragOverGroup(event)" ondrop="dropGroup(event,this)" ondragleave="this.classList.remove('drag-over')" style="margin-bottom:16px">
+      const safeGid = Number(group.id) || escapeHtml(name);
+      html += `<div class="card" id="gcard-${safeGid}" draggable="true" data-gid="${safeGid}" ondragstart="dragStartGroup(event,this)" ondragover="dragOverGroup(event)" ondrop="dropGroup(event,this)" ondragleave="this.classList.remove('drag-over')" style="margin-bottom:16px">
         <div class="card-head">
           <span class="drag-handle" title="Glisser pour réordonner groupes">⠿</span>
           <span class="card-title">${escapeHtml(name)} <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span></span>
         </div>`;
 
       group.monitorList.forEach(m => {
-        const hbs = heartbeats[m.id] || [];
+        const sid = Number(m.id);
+        if (!Number.isInteger(sid)) return;
+        const hbs = heartbeats[sid] || [];
         const last = hbs.slice(-1)[0];
         const isUp = last && last.status === 1;
-        const isHidden = hidden.includes(m.id);
-        const displayName = customNames[m.id] || m.name;
-        const link = customLinks[m.id] || kumaData[m.id]?.url || '';
+        const isHidden = hidden.includes(sid);
+        const displayName = customNames[sid] || m.name;
+        const link = customLinks[sid] || kumaData[sid]?.url || '';
 
-        html += `<div class="row" id="row-${m.id}" draggable="true" data-mid="${m.id}" data-gname="${escapeHtml(name)}" ondragstart="dragStartRow(event,this)" ondragover="dragOverRow(event)" ondrop="dropRow(event,this)" ondragleave="this.classList.remove('drag-over')" style="${isHidden?'opacity:0.4':''}">
+        html += `<div class="row" id="row-${sid}" draggable="true" data-mid="${sid}" data-gname="${escapeHtml(name)}" ondragstart="dragStartRow(event,this)" ondragover="dragOverRow(event)" ondrop="dropRow(event,this)" ondragleave="this.classList.remove('drag-over')" style="${isHidden?'opacity:0.4':''}">
           <span class="drag-handle" title="Glisser pour réordonner">⠿</span>
           <div class="dot ${isUp?'up':'down'}"></div>
-          <input class="inline-input" value="${escapeHtml(displayName)}" id="name-${m.id}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
-          <input class="link-input" value="${escapeHtml(link)}" id="link-${m.id}" placeholder="https://... (lien optionnel)" title="Lien du site hébergeur">
-          <button class="action-btn" onclick="saveInstance(${m.id})">💾 Sauv.</button>
-          <button class="action-btn ${isHidden?'success':''}" onclick="toggleHide(${m.id}, this)">
+          <input class="inline-input" value="${escapeHtml(displayName)}" id="name-${sid}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
+          <input class="link-input" value="${escapeHtml(link)}" id="link-${sid}" placeholder="https://... (lien optionnel)" title="Lien du site hébergeur">
+          <button class="action-btn" onclick="saveInstance(${sid})">💾 Sauv.</button>
+          <button class="action-btn ${isHidden?'success':''}" onclick="toggleHide(${sid}, this)">
             ${isHidden?'👁️ Afficher':'🚫 Masquer'}
           </button>
-          <button class="btn-pause" onclick="toggleMonitor(${m.id}, true)" title="Mettre en pause dans Uptime Kuma">⏸</button>
-          <button class="btn-delete" onclick="deleteMonitor(${m.id}, '${escapeHtml(displayName).replace(/'/g,"\\'")}')">🗑️</button>
+          <button class="btn-pause" onclick="toggleMonitor(${sid}, true)" title="Mettre en pause dans Uptime Kuma">⏸</button>
+          <button class="btn-delete" onclick="deleteMonitor(${sid}, '${escapeHtml(displayName).replace(/'/g,"\\'")}')">🗑️</button>
         </div>`;
       });
 
@@ -1528,17 +1552,19 @@
 
       let html = '';
       monitors.sort((a,b) => a.name.localeCompare(b.name)).forEach(m => {
-        html += `<div class="monitor-row" id="mrow-${m.id}">
+        const sid = Number(m.id);
+        if (!Number.isInteger(sid)) return;
+        html += `<div class="monitor-row" id="mrow-${sid}">
           <div class="dot ${m.active ? 'up' : 'down'}"></div>
           <div class="monitor-name">${escapeHtml(m.name)}</div>
-          <input class="monitor-url" value="${escapeHtml(m.url)}" id="murl-${m.id}" placeholder="https://...">
+          <input class="monitor-url" value="${escapeHtml(m.url)}" id="murl-${sid}" placeholder="https://...">
           <span class="monitor-type">${escapeHtml(m.type)}</span>
           <span class="monitor-status ${m.active ? 'active' : 'paused'}">${m.active ? '▶ Actif' : '⏸ Pausé'}</span>
-          <button class="action-btn" onclick="saveMonitorUrl(${m.id})">💾 Sauv.</button>
-          <button class="btn-pause ${!m.active ? 'resume' : ''}" onclick="toggleMonitor(${m.id}, ${m.active})">
+          <button class="action-btn" onclick="saveMonitorUrl(${sid})">💾 Sauv.</button>
+          <button class="btn-pause ${!m.active ? 'resume' : ''}" onclick="toggleMonitor(${sid}, ${!!m.active})">
             ${m.active ? '⏸ Pause' : '▶ Reprendre'}
           </button>
-          <button class="btn-delete" onclick="deleteMonitor(${m.id}, '${escapeHtml(m.name).replace(/'/g, "\\'")}')">🗑️</button>
+          <button class="btn-delete" onclick="deleteMonitor(${sid}, '${escapeHtml(m.name).replace(/'/g, "\\'")}')">🗑️</button>
         </div>`;
       });
       document.getElementById('monitors-list').innerHTML = html || '<div style="padding:20px;color:var(--muted);text-align:center">Aucun monitor</div>';
@@ -1764,7 +1790,8 @@
     sel.innerHTML = '<option value="">— Aucun —</option>';
     groups.forEach(g => {
       const name = g.name?.replace(/\n/g,'').trim() || '';
-      if (g.id) sel.innerHTML += `<option value="${g.id}">${escapeHtml(name)}</option>`;
+      const gid = Number(g.id);
+      if (Number.isInteger(gid) && gid > 0) sel.innerHTML += `<option value="${gid}">${escapeHtml(name)}</option>`;
     });
   }
 
