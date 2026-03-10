@@ -551,7 +551,7 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
       if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url requise pour un monitor' });
       try { new URL(url); } catch { return res.status(400).json({ error: 'url invalide' }); }
     }
-    const safeInterval = Math.min(Math.max(parseInt(interval) || 60, 20), 3600);
+    const safeInterval = Math.min(Math.max(parseInt(interval) || 60, 1), 3600);
     const payload = { name: name.trim(), url: url || '', type, interval: safeInterval, active: true };
     if (parent !== undefined && parent !== null && parent !== '') payload.parent = parseInt(parent);
     const result = await kumaEmit('add', payload);

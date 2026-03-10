@@ -1064,16 +1064,36 @@
     try {
       const res = await fetch('/api/config', { headers: { 'x-admin-token': saved } });
       if (res.ok) {
-        token = saved;
+        token = saved; // token posé AVANT tout le reste
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
-        init();
+        await init(); // attendre que init() soit terminé
         return true;
       }
     } catch(e) {}
     sessionStorage.removeItem('dash_token');
     return false;
   }
+
+  // Intercepteur global : si une requête retourne 401, retour au login
+  const _origFetch = window.fetch;
+  window.fetch = async function(...args) {
+    const res = await _origFetch(...args);
+    if (res.status === 401 && token) {
+      const clone = res.clone();
+      clone.json().then(d => {
+        if (d.error === 'Token manquant' || d.error === 'Token invalide ou expiré') {
+          token = '';
+          sessionStorage.removeItem('dash_token');
+          document.getElementById('dashboard').style.display = 'none';
+          document.getElementById('login-screen').style.display = 'flex';
+          document.getElementById('login-error').textContent = '⚠️ Session expirée, reconnectez-vous';
+          document.getElementById('login-error').style.display = 'block';
+        }
+      }).catch(()=>{});
+    }
+    return res;
+  };
 
   // Au chargement : tenter de restaurer la session, sinon afficher le login
   tryRestoreSession();
