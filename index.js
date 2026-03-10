@@ -144,15 +144,12 @@ function connectToKuma() {
   });
 }
 
-function kumaEmit(event, data, timeout = 10000) {
+function kumaEmit(event, data) {
   return new Promise((resolve, reject) => {
     if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
-    const timer = setTimeout(() => reject(new Error('Timeout Kuma')), timeout);
     kumaSocket.emit(event, data, (res) => {
-      clearTimeout(timer);
-      console.log('Kuma [' + event + '] reponse:', JSON.stringify(res));
       if (res && res.ok === false) reject(new Error(res.msg || 'Erreur Kuma'));
-      else resolve(res || {});
+      else resolve(res);
     });
   });
 }
@@ -555,8 +552,27 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
       try { new URL(url); } catch { return res.status(400).json({ error: 'url invalide' }); }
     }
     const safeInterval = Math.min(Math.max(parseInt(interval) || 60, 1), 3600);
-    const payload = { name: name.trim(), url: url || '', type, interval: safeInterval, active: true };
-    if (parent !== undefined && parent !== null && parent !== '') payload.parent = parseInt(parent);
+    const parentId = (parent !== undefined && parent !== null && parent !== '') ? parseInt(parent) : null;
+    const payload = {
+      id: null,
+      name: name.trim(),
+      url: url || '',
+      type: type === 'https' ? 'http' : type,
+      interval: safeInterval,
+      active: true,
+      retryInterval: safeInterval,
+      maxretries: 0,
+      notificationIDList: {},
+      ignoreTls: false,
+      upsideDown: false,
+      maxRedirects: 10,
+      accepted_statuscodes: ['200-299'],
+      dns_resolve_type: 'A',
+      dns_resolve_server: '1.1.1.1',
+      proxyId: null,
+      httpBodyEncoding: 'json',
+      ...(parentId !== null ? { parent: parentId } : {}),
+    };
     console.log('📡 Ajout monitor Kuma:', JSON.stringify(payload));
     const result = await kumaEmit('add', payload);
     console.log('📡 Résultat add:', JSON.stringify(result));
