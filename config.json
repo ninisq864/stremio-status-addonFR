@@ -31,7 +31,8 @@
     "20": "Midnight's Comet",
     "21": "Kuu's Comet",
     "22": "WAStream",
-    "23": "WAStream"
+    "23": "WAStream",
+    "24": "You"
   },
   "customLinks": {
     "1": "https://",
@@ -56,10 +57,11 @@
     "20": "https://cometfortheweebs.midnightignite.me/configure",
     "21": "https://comet.stremio.ru/configure",
     "22": "https://",
-    "23": "https://wastream.striho.top/configure"
+    "23": "https://wastream.striho.top/configure",
+    "24": "https://www.youtube.com/"
   },
   "defaultPoster": "https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png",
   "cacheTTL": 25,
   "autoIncrementVersion": true,
-  "manifestVersion": "1.0.1"
+  "manifestVersion": "1.0.2"
 }
