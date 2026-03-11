@@ -174,21 +174,32 @@ let kumaStatusPageId = null;
 // Cookie de session Kuma pour l'API REST
 let kumaSessionCookie = null;
 
-// Obtenir un cookie de session Kuma via API REST
+// Obtenir le token Bearer depuis la connexion Socket.IO déjà établie
 async function getKumaSession() {
-  if (kumaSessionCookie) return kumaSessionCookie;
-  try {
-    const res = await axios.post(`${UPTIME_KUMA_URL}/api/login/access-token`,
-      new URLSearchParams({ username: UPTIME_KUMA_USERNAME, password: UPTIME_KUMA_PASSWORD }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
-    if (res.data?.tokenType && res.data?.accessToken) {
-      kumaSessionCookie = `Bearer ${res.data.accessToken}`;
-      console.log('🔑 Session Kuma REST obtenue');
-      return kumaSessionCookie;
+  if (kumaToken) {
+    console.log('🔑 Token Kuma Socket.IO disponible');
+    return `Bearer ${kumaToken}`;
+  }
+  // Fallback: login via API REST (différents endpoints selon version Kuma)
+  const endpoints = [
+    { url: '/api/login', body: { username: UPTIME_KUMA_USERNAME, password: UPTIME_KUMA_PASSWORD }, type: 'json' },
+  ];
+  for (const ep of endpoints) {
+    try {
+      const res = await axios.post(`${UPTIME_KUMA_URL}${ep.url}`,
+        ep.body,
+        { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
+      );
+      console.log('🔑 Login REST response:', JSON.stringify(res.data).slice(0, 100));
+      if (res.data?.token) return `Bearer ${res.data.token}`;
+      if (res.headers['set-cookie']) {
+        const cookie = res.headers['set-cookie'].join('; ');
+        console.log('🔑 Cookie Kuma REST obtenu');
+        return cookie; // utiliser comme Cookie header
+      }
+    } catch(e) {
+      console.error('❌ Erreur login REST', ep.url, ':', e.response?.status, e.message);
     }
-  } catch(e) {
-    console.error('❌ Erreur session Kuma REST:', e.message);
   }
   return null;
 }
@@ -301,10 +312,11 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     };
 
     console.log('📄 POST /api/status-page avec', publicGroupList.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList.length));
+    const authHeader = session.startsWith('Bearer ') ? { Authorization: session } : { Cookie: session };
     const saveRes = await axios.post(
       `${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`,
       restPayload,
-      { headers: { Authorization: session, 'Content-Type': 'application/json' } }
+      { headers: { ...authHeader, 'Content-Type': 'application/json' } }
     );
     console.log('✅ Status page REST sauvegardée:', saveRes.status, JSON.stringify(saveRes.data).slice(0,100));
     cache = { data: null, ts: 0 };
