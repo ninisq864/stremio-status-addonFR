@@ -292,33 +292,52 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     console.log('📄 saveStatusPage payload groupes:', publicGroupList.map(g => g.name + ':' + g.monitorList.length));
     // saveStatusPage avec token d'auth
     if (kumaToken) savePayload.token = kumaToken;
-    // Sauvegarder via API REST Kuma
-    const session = await getKumaSession();
-    if (!session) throw new Error('Pas de session Kuma REST');
-
-    const restPayload = {
+    // Format exact attendu par Kuma pour saveStatusPage
+    const finalPayload = {
       slug: STATUS_SLUG,
-      title: savePayload.title,
-      description: savePayload.description,
-      icon: savePayload.icon,
-      theme: savePayload.theme,
-      published: savePayload.published,
-      showTags: savePayload.showTags,
-      domainNameList: savePayload.domainNameList,
-      customCSS: savePayload.customCSS,
-      footerText: savePayload.footerText,
-      showPoweredBy: savePayload.showPoweredBy,
-      publicGroupList: savePayload.publicGroupList,
+      title: savePayload.title || 'StremioFR Addons',
+      description: savePayload.description || '',
+      icon: savePayload.icon || '/icon.svg',
+      theme: savePayload.theme || 'dark',
+      published: savePayload.published !== false,
+      showTags: savePayload.showTags || false,
+      domainNameList: savePayload.domainNameList || [],
+      customCSS: savePayload.customCSS || '',
+      footerText: savePayload.footerText || '',
+      showPoweredBy: savePayload.showPoweredBy !== false,
+      // publicGroupList avec IDs en nombre et structure exacte
+      publicGroupList: publicGroupList.map((g, i) => ({
+        name: g.name,
+        weight: typeof g.weight === 'number' ? g.weight : i,
+        monitorList: (g.monitorList || []).map(m => ({
+          id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
+        })),
+      })),
     };
 
-    console.log('📄 POST /api/status-page avec', publicGroupList.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList.length));
-    const authHeader = session.startsWith('Bearer ') ? { Authorization: session } : { Cookie: session };
-    const saveRes = await axios.post(
-      `${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`,
-      restPayload,
-      { headers: { ...authHeader, 'Content-Type': 'application/json' } }
-    );
-    console.log('✅ Status page REST sauvegardée:', saveRes.status, JSON.stringify(saveRes.data).slice(0,100));
+    console.log('📄 saveStatusPage payload complet:', JSON.stringify(finalPayload).slice(0, 500));
+    
+    await new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        console.log('⚠️ saveStatusPage: pas de callback (fire & forget Kuma)');
+        resolve();
+      }, 3000);
+      kumaSocket.emit('saveStatusPage', finalPayload, (res) => {
+        clearTimeout(timer);
+        console.log('📄 saveStatusPage callback reçu:', JSON.stringify(res));
+        resolve(res);
+      });
+    });
+
+    await new Promise(r => setTimeout(r, 2000));
+    
+    // Vérifier si le changement a été appliqué
+    try {
+      const verif = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`);
+      const groups = verif.data?.publicGroupList?.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList?.length);
+      console.log('✅ Vérif après save:', groups);
+    } catch(e) { console.error('❌ Vérif échouée:', e.message); }
+
     cache = { data: null, ts: 0 };
     return true;
   } catch(e) {
