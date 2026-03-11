@@ -268,8 +268,9 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
       customCSS: pageData.customCSS || '',
       footerText: pageData.footerText || '',
       showPoweredBy: pageData.showPoweredBy !== false,
-      googleAnalyticsId: pageData.googleAnalyticsId || '',  // requis par Kuma v2
+      googleAnalyticsId: pageData.googleAnalyticsId ?? null,
     };
+    console.log('📄 pageConfig envoyé:', JSON.stringify(pageConfig));
 
     // publicGroupList normalisée (arg 4 de saveStatusPage)
     const normalizedGroupList = publicGroupList.map((g, i) => ({
@@ -340,8 +341,9 @@ async function removeFromStatusPage(monitorId) {
       customCSS: pageData.customCSS || '',
       footerText: pageData.footerText || '',
       showPoweredBy: pageData.showPoweredBy !== false,
-      googleAnalyticsId: pageData.googleAnalyticsId || '',  // requis par Kuma v2
+      googleAnalyticsId: pageData.googleAnalyticsId ?? null,
     };
+    console.log('📄 pageConfig envoyé:', JSON.stringify(pageConfig));
 
     const normalizedGroupList = publicGroupList.map((g, i) => ({
       id: g.id || undefined,
