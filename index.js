@@ -292,30 +292,46 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     console.log('📄 saveStatusPage payload groupes:', publicGroupList.map(g => g.name + ':' + g.monitorList.length));
     // saveStatusPage avec token d'auth
     if (kumaToken) savePayload.token = kumaToken;
-    // Format exact attendu par Kuma pour saveStatusPage
+    // Format EXACT attendu par Kuma v2 : config dans un sous-objet séparé
     const finalPayload = {
       slug: STATUS_SLUG,
-      title: savePayload.title || 'StremioFR Addons',
-      description: savePayload.description || '',
-      icon: savePayload.icon || '/icon.svg',
-      theme: savePayload.theme || 'dark',
-      published: savePayload.published !== false,
-      showTags: savePayload.showTags || false,
-      domainNameList: savePayload.domainNameList || [],
-      customCSS: savePayload.customCSS || '',
-      footerText: savePayload.footerText || '',
-      showPoweredBy: savePayload.showPoweredBy !== false,
-      // publicGroupList avec IDs en nombre et structure exacte
+      config: {
+        slug: STATUS_SLUG,
+        title: savePayload.title || 'StremioFR Addons',
+        description: savePayload.description || '',
+        icon: savePayload.icon || '/icon.svg',
+        theme: savePayload.theme || 'dark',
+        published: savePayload.published !== false,
+        showTags: savePayload.showTags || false,
+        domainNameList: savePayload.domainNameList || [],
+        customCSS: savePayload.customCSS || '',
+        footerText: savePayload.footerText || '',
+        showPoweredBy: savePayload.showPoweredBy !== false,
+      },
+      imgDataUrl: '',
       publicGroupList: publicGroupList.map((g, i) => ({
+        id: g.id || undefined,
         name: g.name,
         weight: typeof g.weight === 'number' ? g.weight : i,
         monitorList: (g.monitorList || []).map(m => ({
           id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
+          sendUrl: false,
         })),
       })),
     };
 
     console.log('📄 saveStatusPage payload complet:', JSON.stringify(finalPayload).slice(0, 500));
+
+    // Re-authentifier avec loginByToken avant saveStatusPage
+    if (kumaToken) {
+      await new Promise((resolve) => {
+        kumaSocket.emit('loginByToken', kumaToken, (res) => {
+          console.log('🔑 loginByToken avant save:', JSON.stringify(res));
+          resolve();
+        });
+        setTimeout(resolve, 2000);
+      });
+    }
     
     await new Promise((resolve) => {
       const timer = setTimeout(() => {
