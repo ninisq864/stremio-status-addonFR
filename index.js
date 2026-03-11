@@ -18,6 +18,7 @@ const DASHBOARD_COOKIE = 'dsid';
 const DASHBOARD_COOKIE_SECRET = process.env.DASHBOARD_COOKIE_SECRET || crypto.randomBytes(32).toString('hex');
 
 const UPTIME_KUMA_USERNAME = process.env.UPTIME_KUMA_USERNAME || '';
+const UPTIME_KUMA_API_KEY = process.env.UPTIME_KUMA_API_KEY || '';
 const UPTIME_KUMA_PASSWORD = process.env.UPTIME_KUMA_PASSWORD || '';
 
 let ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
@@ -174,32 +175,15 @@ let kumaStatusPageId = null;
 // Cookie de session Kuma pour l'API REST
 let kumaSessionCookie = null;
 
-// Obtenir le token Bearer depuis la connexion Socket.IO déjà établie
+// Obtenir le header d'auth Kuma (API Key prioritaire)
 async function getKumaSession() {
+  if (UPTIME_KUMA_API_KEY) {
+    console.log('🔑 Utilisation clé API Kuma');
+    return `Bearer ${UPTIME_KUMA_API_KEY}`;
+  }
   if (kumaToken) {
     console.log('🔑 Token Kuma Socket.IO disponible');
     return `Bearer ${kumaToken}`;
-  }
-  // Fallback: login via API REST (différents endpoints selon version Kuma)
-  const endpoints = [
-    { url: '/api/login', body: { username: UPTIME_KUMA_USERNAME, password: UPTIME_KUMA_PASSWORD }, type: 'json' },
-  ];
-  for (const ep of endpoints) {
-    try {
-      const res = await axios.post(`${UPTIME_KUMA_URL}${ep.url}`,
-        ep.body,
-        { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
-      );
-      console.log('🔑 Login REST response:', JSON.stringify(res.data).slice(0, 100));
-      if (res.data?.token) return `Bearer ${res.data.token}`;
-      if (res.headers['set-cookie']) {
-        const cookie = res.headers['set-cookie'].join('; ');
-        console.log('🔑 Cookie Kuma REST obtenu');
-        return cookie; // utiliser comme Cookie header
-      }
-    } catch(e) {
-      console.error('❌ Erreur login REST', ep.url, ':', e.response?.status, e.message);
-    }
   }
   return null;
 }
@@ -320,39 +304,23 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
       })),
     };
 
-    console.log('📄 saveStatusPage payload complet:', JSON.stringify(finalPayload).slice(0, 500));
+    // Sauvegarder via API REST avec clé API
+    const session = await getKumaSession();
+    if (!session) throw new Error('Pas de session Kuma');
 
-    // Re-authentifier avec loginByToken avant saveStatusPage
-    if (kumaToken) {
-      await new Promise((resolve) => {
-        kumaSocket.emit('loginByToken', kumaToken, (res) => {
-          console.log('🔑 loginByToken avant save:', JSON.stringify(res));
-          resolve();
-        });
-        setTimeout(resolve, 2000);
-      });
-    }
-    
-    await new Promise((resolve) => {
-      const timer = setTimeout(() => {
-        console.log('⚠️ saveStatusPage: pas de callback (fire & forget Kuma)');
-        resolve();
-      }, 3000);
-      kumaSocket.emit('saveStatusPage', finalPayload, (res) => {
-        clearTimeout(timer);
-        console.log('📄 saveStatusPage callback reçu:', JSON.stringify(res));
-        resolve(res);
-      });
-    });
+    console.log('📄 POST API REST /api/status-page groupes:', finalPayload.publicGroupList.map(g => g.name + ':' + g.monitorList.length));
 
-    await new Promise(r => setTimeout(r, 2000));
-    
-    // Vérifier si le changement a été appliqué
-    try {
-      const verif = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`);
-      const groups = verif.data?.publicGroupList?.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList?.length);
-      console.log('✅ Vérif après save:', groups);
-    } catch(e) { console.error('❌ Vérif échouée:', e.message); }
+    const saveRes = await axios.post(
+      `${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`,
+      finalPayload,
+      { headers: { Authorization: session, 'Content-Type': 'application/json' } }
+    );
+    console.log('✅ Status page sauvegardée via API REST:', saveRes.status, JSON.stringify(saveRes.data).slice(0, 100));
+
+    await new Promise(r => setTimeout(r, 1000));
+    const verif = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`);
+    const groups = verif.data?.publicGroupList?.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList?.length);
+    console.log('✅ Vérif après save:', groups);
 
     cache = { data: null, ts: 0 };
     return true;
