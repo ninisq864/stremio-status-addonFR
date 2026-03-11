@@ -121,6 +121,7 @@ function connectToKuma() {
   console.log('🔌 Connexion à Uptime Kuma...');
   kumaSocket = io(UPTIME_KUMA_URL, { transports: ['websocket'], reconnection: true, reconnectionDelay: 5000 });
 
+  // ── Listener connect unique (fusionné) ──
   kumaSocket.on('connect', () => {
     console.log('✅ Connecté à Uptime Kuma');
     kumaConnected = true;
@@ -129,6 +130,8 @@ function connectToKuma() {
         kumaToken = res.token || null;
         console.log('✅ Auth Uptime Kuma OK, token:', kumaToken ? 'reçu' : 'absent');
         kumaReady = true;
+        // Charger la status page après login réussi
+        setTimeout(() => kumaSocket.emit('getStatusPage', STATUS_SLUG), 2000);
       } else console.error('❌ Auth Uptime Kuma échouée:', res.msg);
     });
   });
@@ -147,11 +150,6 @@ function connectToKuma() {
         console.log(`📄 statusPageList - ID: ${page.id}, slug: ${page.slug}`);
       }
     }
-  });
-
-  // Charger la status page au démarrage
-  kumaSocket.on('connect', () => {
-    setTimeout(() => kumaSocket.emit('getStatusPage', STATUS_SLUG), 2000);
   });
 
   kumaSocket.on('statusPage', (data) => {
@@ -257,8 +255,8 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
       console.log(`📄 Monitor ${monitorId} ajouté au groupe "${targetGroup.name.replace(/\n/g,'').trim()}" (total: ${targetGroup.monitorList.length})`);
     }
 
-    const savePayload = {
-      id: pageData.id,
+    // Config de la status page (arg 2 de saveStatusPage)
+    const pageConfig = {
       slug: STATUS_SLUG,
       title: pageData.title || 'StremioFR Addons',
       description: pageData.description || '',
@@ -270,53 +268,41 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
       customCSS: pageData.customCSS || '',
       footerText: pageData.footerText || '',
       showPoweredBy: pageData.showPoweredBy !== false,
-      publicGroupList,
     };
 
-    console.log('📄 saveStatusPage payload groupes:', publicGroupList.map(g => g.name + ':' + g.monitorList.length));
-    // saveStatusPage avec token d'auth
-    if (kumaToken) savePayload.token = kumaToken;
-    // Format EXACT attendu par Kuma v2 : config dans un sous-objet séparé
-    const finalPayload = {
-      slug: STATUS_SLUG,
-      config: {
-        slug: STATUS_SLUG,
-        title: savePayload.title || 'StremioFR Addons',
-        description: savePayload.description || '',
-        icon: savePayload.icon || '/icon.svg',
-        theme: savePayload.theme || 'dark',
-        published: savePayload.published !== false,
-        showTags: savePayload.showTags || false,
-        domainNameList: savePayload.domainNameList || [],
-        customCSS: savePayload.customCSS || '',
-        footerText: savePayload.footerText || '',
-        showPoweredBy: savePayload.showPoweredBy !== false,
-      },
-      imgDataUrl: '',
-      publicGroupList: publicGroupList.map((g, i) => ({
-        id: g.id || undefined,
-        name: g.name,
-        weight: typeof g.weight === 'number' ? g.weight : i,
-        monitorList: (g.monitorList || []).map(m => ({
-          id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
-          sendUrl: false,
-        })),
+    // publicGroupList normalisée (arg 4 de saveStatusPage)
+    const normalizedGroupList = publicGroupList.map((g, i) => ({
+      id: g.id || undefined,
+      name: g.name,
+      weight: typeof g.weight === 'number' ? g.weight : i,
+      monitorList: (g.monitorList || []).map(m => ({
+        id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
+        sendUrl: false,
       })),
-    };
+    }));
 
-    // Sauvegarder via API REST avec clé API
-    const session = await getKumaSession();
-    if (!session) throw new Error('Pas de session Kuma');
+    console.log('📄 saveStatusPage (Socket.IO) groupes:', normalizedGroupList.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList.length));
 
-    console.log('📄 POST API REST /api/status-page groupes:', finalPayload.publicGroupList.map(g => g.name + ':' + g.monitorList.length));
+    // ✅ saveStatusPage v2 : 4 arguments séparés + callback obligatoire
+    await new Promise((resolve, reject) => {
+      if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
+      const timeout = setTimeout(() => reject(new Error('saveStatusPage timeout (10s)')), 10000);
+      kumaSocket.emit(
+        'saveStatusPage',
+        STATUS_SLUG,        // arg 1 : slug
+        pageConfig,         // arg 2 : config (objet plat)
+        '',                 // arg 3 : imgDataUrl (vide = pas de changement d'icône)
+        normalizedGroupList,// arg 4 : publicGroupList
+        (res) => {
+          clearTimeout(timeout);
+          console.log('📄 saveStatusPage réponse Kuma:', JSON.stringify(res));
+          if (res && res.ok === false) reject(new Error(res.msg || 'Erreur saveStatusPage'));
+          else resolve(res);
+        }
+      );
+    });
 
-    const saveRes = await axios.post(
-      `${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`,
-      finalPayload,
-      { headers: { Authorization: session, 'Content-Type': 'application/json' } }
-    );
-    console.log('✅ Status page sauvegardée via API REST:', saveRes.status, JSON.stringify(saveRes.data).slice(0, 100));
-
+    // Vérification post-save
     await new Promise(r => setTimeout(r, 1000));
     const verif = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`);
     const groups = verif.data?.publicGroupList?.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList?.length);
@@ -341,8 +327,7 @@ async function removeFromStatusPage(monitorId) {
       monitorList: g.monitorList.filter(m => m.id !== monitorId)
     }));
 
-    const savePayload = {
-      id: pageData.id,
+    const pageConfig = {
       slug: STATUS_SLUG,
       title: pageData.title || 'StremioFR Addons',
       description: pageData.description || '',
@@ -354,10 +339,36 @@ async function removeFromStatusPage(monitorId) {
       customCSS: pageData.customCSS || '',
       footerText: pageData.footerText || '',
       showPoweredBy: pageData.showPoweredBy !== false,
-      publicGroupList,
     };
 
-    await kumaEmit('saveStatusPage', savePayload);
+    const normalizedGroupList = publicGroupList.map((g, i) => ({
+      id: g.id || undefined,
+      name: g.name,
+      weight: typeof g.weight === 'number' ? g.weight : i,
+      monitorList: (g.monitorList || []).map(m => ({
+        id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
+        sendUrl: false,
+      })),
+    }));
+
+    // ✅ saveStatusPage v2 : 4 arguments séparés + callback obligatoire
+    await new Promise((resolve, reject) => {
+      if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
+      const timeout = setTimeout(() => reject(new Error('saveStatusPage timeout (10s)')), 10000);
+      kumaSocket.emit(
+        'saveStatusPage',
+        STATUS_SLUG,
+        pageConfig,
+        '',
+        normalizedGroupList,
+        (res) => {
+          clearTimeout(timeout);
+          console.log('📄 removeFromStatusPage réponse Kuma:', JSON.stringify(res));
+          if (res && res.ok === false) reject(new Error(res.msg || 'Erreur saveStatusPage'));
+          else resolve(res);
+        }
+      );
+    });
     cache = { data: null, ts: 0 };
     return true;
   } catch(e) {
