@@ -171,16 +171,35 @@ function connectToKuma() {
 // Récupère la structure actuelle de la status page depuis l'API publique
 // ID interne de la status page (reçu via statusPageList event)
 let kumaStatusPageId = null;
+// Cookie de session Kuma pour l'API REST
+let kumaSessionCookie = null;
 
-// Récupère la structure complète : ID depuis Socket.IO + groupes depuis API publique
+// Obtenir un cookie de session Kuma via API REST
+async function getKumaSession() {
+  if (kumaSessionCookie) return kumaSessionCookie;
+  try {
+    const res = await axios.post(`${UPTIME_KUMA_URL}/api/login/access-token`,
+      new URLSearchParams({ username: UPTIME_KUMA_USERNAME, password: UPTIME_KUMA_PASSWORD }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+    if (res.data?.tokenType && res.data?.accessToken) {
+      kumaSessionCookie = `Bearer ${res.data.accessToken}`;
+      console.log('🔑 Session Kuma REST obtenue');
+      return kumaSessionCookie;
+    }
+  } catch(e) {
+    console.error('❌ Erreur session Kuma REST:', e.message);
+  }
+  return null;
+}
+
+// Récupère la structure complète de la status page
 async function fetchStatusPageStructure() {
   try {
-    // Fetch les groupes depuis l'API publique (toujours à jour)
     const res = await axios.get(`${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`, {
       headers: { Accept: 'application/json' }
     });
     const pageData = res.data;
-    // Injecter l'ID interne si on l'a reçu via Socket.IO
     if (kumaStatusPageId) pageData.id = kumaStatusPageId;
     console.log(`📄 Status page - ID: ${pageData.id} groupes: ${pageData.publicGroupList?.length}`);
     return pageData;
@@ -262,15 +281,33 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     console.log('📄 saveStatusPage payload groupes:', publicGroupList.map(g => g.name + ':' + g.monitorList.length));
     // saveStatusPage avec token d'auth
     if (kumaToken) savePayload.token = kumaToken;
-    console.log('📄 saveStatusPage avec token:', !!kumaToken);
-    // saveStatusPage est fire-and-forget dans Kuma (pas de callback)
-    kumaSocket.emit('saveStatusPage', savePayload, (res) => {
-      console.log('📄 saveStatusPage callback:', JSON.stringify(res));
-    });
-    // Attendre que Kuma traite la mise à jour
-    await new Promise(r => setTimeout(r, 1500));
+    // Sauvegarder via API REST Kuma
+    const session = await getKumaSession();
+    if (!session) throw new Error('Pas de session Kuma REST');
+
+    const restPayload = {
+      slug: STATUS_SLUG,
+      title: savePayload.title,
+      description: savePayload.description,
+      icon: savePayload.icon,
+      theme: savePayload.theme,
+      published: savePayload.published,
+      showTags: savePayload.showTags,
+      domainNameList: savePayload.domainNameList,
+      customCSS: savePayload.customCSS,
+      footerText: savePayload.footerText,
+      showPoweredBy: savePayload.showPoweredBy,
+      publicGroupList: savePayload.publicGroupList,
+    };
+
+    console.log('📄 POST /api/status-page avec', publicGroupList.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList.length));
+    const saveRes = await axios.post(
+      `${UPTIME_KUMA_URL}/api/status-page/${STATUS_SLUG}`,
+      restPayload,
+      { headers: { Authorization: session, 'Content-Type': 'application/json' } }
+    );
+    console.log('✅ Status page REST sauvegardée:', saveRes.status, JSON.stringify(saveRes.data).slice(0,100));
     cache = { data: null, ts: 0 };
-    console.log('✅ Status page sauvegardée');
     return true;
   } catch(e) {
     console.error('❌ Erreur addToStatusPage:', e.message, e.stack?.split('\n')[1]);
