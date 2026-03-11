@@ -63,5 +63,5 @@
   "defaultPoster": "https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png",
   "cacheTTL": 25,
   "autoIncrementVersion": true,
-  "manifestVersion": "1.0.2"
+  "manifestVersion": "1.0.3"
 }
