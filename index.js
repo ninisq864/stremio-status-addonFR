@@ -187,14 +187,12 @@ async function fetchStatusPageStructure() {
 }
 
 // Ajoute un monitor ou groupe à la status page Kuma
-async function addToStatusPage(monitorId, groupName, isGroup = false) {
+async function addToStatusPage(monitorId, groupName, isGroup = false, parentMonitorId = null) {
   try {
-    console.log(`📄 addToStatusPage: monitorId=${monitorId} groupName=${groupName} isGroup=${isGroup}`);
+    console.log(`📄 addToStatusPage: monitorId=${monitorId} groupName="${groupName}" isGroup=${isGroup} parentId=${parentMonitorId}`);
     const pageData = await fetchStatusPageStructure();
     if (!pageData) { console.error('❌ Pas de données status page'); return false; }
-    console.log(`📄 pageData.id=${pageData.id} groupes=${pageData.publicGroupList?.length}`);
 
-    // Reconstruire publicGroupList avec la structure complète attendue par Kuma
     const publicGroupList = (pageData.publicGroupList || []).map((g, i) => ({
       id: g.id || undefined,
       name: g.name,
@@ -205,22 +203,40 @@ async function addToStatusPage(monitorId, groupName, isGroup = false) {
       })),
     }));
 
+    console.log('📄 Groupes dans status page:', publicGroupList.map(g => `"${g.name.replace(/\n/g,'').trim()}":${g.monitorList.length}`));
+
     if (isGroup) {
-      publicGroupList.push({
-        name: groupName,
-        weight: publicGroupList.length,
-        monitorList: [],
-      });
+      publicGroupList.push({ name: groupName, weight: publicGroupList.length, monitorList: [] });
     } else {
-      let targetGroup = publicGroupList.find(g =>
-        g.name.replace(/\n/g,'').trim().toLowerCase() === groupName.toLowerCase()
-      );
+      let targetGroup = null;
+
+      // Méthode 1 : trouver le groupe qui contient déjà un frère (même parent Kuma)
+      if (parentMonitorId) {
+        const siblingIds = new Set(
+          Object.values(kumaMonitors)
+            .filter(m => m.parent === parentMonitorId && m.id !== monitorId)
+            .map(m => m.id)
+        );
+        console.log('📄 Siblings IDs:', [...siblingIds]);
+        targetGroup = publicGroupList.find(g => g.monitorList.some(m => siblingIds.has(m.id)));
+        if (targetGroup) console.log(`📄 Groupe trouvé par siblings: "${targetGroup.name.replace(/\n/g,'').trim()}"`);
+      }
+
+      // Méthode 2 : par nom (nettoyé)
       if (!targetGroup) {
-        console.warn(`⚠️ Groupe "${groupName}" non trouvé, création auto`);
-        targetGroup = { name: groupName || 'Non classé', weight: publicGroupList.length, monitorList: [] };
+        const cleanTarget = groupName.replace(/\n/g,'').trim().toLowerCase();
+        targetGroup = publicGroupList.find(g => g.name.replace(/\n/g,'').trim().toLowerCase() === cleanTarget);
+        if (targetGroup) console.log(`📄 Groupe trouvé par nom: "${targetGroup.name.replace(/\n/g,'').trim()}"`);
+      }
+
+      if (!targetGroup) {
+        console.warn(`⚠️ Groupe "${groupName}" non trouvé — création`);
+        targetGroup = { name: groupName, weight: publicGroupList.length, monitorList: [] };
         publicGroupList.push(targetGroup);
       }
+
       targetGroup.monitorList.push({ id: monitorId, sendUrl: false });
+      console.log(`📄 Monitor ${monitorId} ajouté au groupe "${targetGroup.name.replace(/\n/g,'').trim()}" (total: ${targetGroup.monitorList.length})`);
     }
 
     const savePayload = {
@@ -787,7 +803,7 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
       } else {
         let groupName = 'Non classé';
         if (parentId && kumaMonitors[parentId]) groupName = kumaMonitors[parentId].name;
-        await addToStatusPage(newId, groupName, false);
+        await addToStatusPage(newId, groupName, false, parentId);
       }
     }
 
