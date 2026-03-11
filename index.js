@@ -109,6 +109,7 @@ let kumaSocket = null;
 let kumaConnected = false;
 let kumaMonitors = {};
 let kumaReady = false;
+let kumaToken = null;
 let kumaStatusPage = null;
 
 function connectToKuma() {
@@ -123,8 +124,11 @@ function connectToKuma() {
     console.log('✅ Connecté à Uptime Kuma');
     kumaConnected = true;
     kumaSocket.emit('login', { username: UPTIME_KUMA_USERNAME, password: UPTIME_KUMA_PASSWORD }, (res) => {
-      if (res.ok) { console.log('✅ Auth Uptime Kuma OK'); kumaReady = true; }
-      else console.error('❌ Auth Uptime Kuma échouée:', res.msg);
+      if (res.ok) {
+        kumaToken = res.token || null;
+        console.log('✅ Auth Uptime Kuma OK, token:', kumaToken ? 'reçu' : 'absent');
+        kumaReady = true;
+      } else console.error('❌ Auth Uptime Kuma échouée:', res.msg);
     });
   });
 
@@ -256,6 +260,9 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     };
 
     console.log('📄 saveStatusPage payload groupes:', publicGroupList.map(g => g.name + ':' + g.monitorList.length));
+    // saveStatusPage avec token d'auth
+    if (kumaToken) savePayload.token = kumaToken;
+    console.log('📄 saveStatusPage avec token:', !!kumaToken);
     // saveStatusPage est fire-and-forget dans Kuma (pas de callback)
     kumaSocket.emit('saveStatusPage', savePayload, (res) => {
       console.log('📄 saveStatusPage callback:', JSON.stringify(res));
