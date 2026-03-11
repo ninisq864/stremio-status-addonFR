@@ -240,9 +240,14 @@ async function addToStatusPage(monitorId, groupName, isGroup = false) {
     };
 
     console.log('📄 saveStatusPage payload groupes:', publicGroupList.map(g => g.name + ':' + g.monitorList.length));
-    const saveResult = await kumaEmit('saveStatusPage', savePayload);
-    console.log('📄 saveStatusPage result:', JSON.stringify(saveResult));
+    // saveStatusPage est fire-and-forget dans Kuma (pas de callback)
+    kumaSocket.emit('saveStatusPage', savePayload, (res) => {
+      console.log('📄 saveStatusPage callback:', JSON.stringify(res));
+    });
+    // Attendre que Kuma traite la mise à jour
+    await new Promise(r => setTimeout(r, 1500));
     cache = { data: null, ts: 0 };
+    console.log('✅ Status page sauvegardée');
     return true;
   } catch(e) {
     console.error('❌ Erreur addToStatusPage:', e.message, e.stack?.split('\n')[1]);
