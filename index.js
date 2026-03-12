@@ -849,7 +849,7 @@ app.get('/api/kuma/monitors', authMiddleware, (req, res) => {
 
 app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
   try {
-    const { name, url, interval = 60, parent } = req.body;
+    const { name, url, interval = 60, parent, parentName } = req.body;
     const type = (req.body.type || 'http').toLowerCase();
     const VALID_TYPES = ['http', 'https', 'tcp', 'ping', 'dns', 'group'];
     if (!name || typeof name !== 'string' || name.trim().length === 0 || name.length > 100)
@@ -892,7 +892,11 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
         await addToStatusPage(newId, name.trim(), true);
       } else {
         let groupName = 'Non classé';
-        if (parentId && kumaMonitors[parentId]) groupName = kumaMonitors[parentId].name;
+        if (parentName && typeof parentName === 'string') {
+          groupName = parentName.trim();
+        } else if (parentId && kumaMonitors[parentId]) {
+          groupName = kumaMonitors[parentId].name;
+        }
         await addToStatusPage(newId, groupName, false, parentId);
       }
     }

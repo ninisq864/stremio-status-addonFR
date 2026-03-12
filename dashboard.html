@@ -1126,8 +1126,9 @@
       if (!res.ok) return;
       allData = await res.json();
       renderStats();
-      renderInstances({});
       updateCacheAge();
+      // Toujours charger kumaData pour afficher les URLs dans le tableau instances
+      await loadInstancesWithKuma();
     } catch(e) { /* erreur réseau, on ne crash pas */ }
   }
 
@@ -1647,13 +1648,15 @@
     const url = document.getElementById('new-monitor-url').value.trim();
     const type = document.getElementById('new-monitor-type').value;
     const interval = parseInt(document.getElementById('new-monitor-interval').value) || 60;
-    const parent = document.getElementById('new-monitor-parent')?.value || '';
+    const parentSel = document.getElementById('new-monitor-parent');
+    const parent = parentSel?.value || '';
+    const parentName = parentSel?.options[parentSel.selectedIndex]?.text || '';
     if (!url) return toast('❌ URL requise');
     try {
       const res = await fetch('/api/kuma/monitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        body: JSON.stringify({ name, url, type, interval, parent: parent || undefined })
+        body: JSON.stringify({ name, url, type, interval, parent: parent || undefined, parentName: parentName || undefined })
       });
       if (res.ok) {
         toast('✅ Monitor créé !');
