@@ -269,6 +269,9 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
       footerText: pageData.footerText || '',
       showPoweredBy: pageData.showPoweredBy !== false,
       googleAnalyticsId: pageData.googleAnalyticsId ?? null,
+      analyticsType: pageData.analyticsType || "Google Analytics",
+      analyticsId: pageData.analyticsId ?? null,
+      analyticsScriptUrl: pageData.analyticsScriptUrl ?? null,
     };
     console.log('📄 pageConfig envoyé:', JSON.stringify(pageConfig));
 
@@ -342,6 +345,9 @@ async function removeFromStatusPage(monitorId) {
       footerText: pageData.footerText || '',
       showPoweredBy: pageData.showPoweredBy !== false,
       googleAnalyticsId: pageData.googleAnalyticsId ?? null,
+      analyticsType: pageData.analyticsType || "Google Analytics",
+      analyticsId: pageData.analyticsId ?? null,
+      analyticsScriptUrl: pageData.analyticsScriptUrl ?? null,
     };
     console.log('📄 pageConfig envoyé:', JSON.stringify(pageConfig));
 
