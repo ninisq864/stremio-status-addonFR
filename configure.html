@@ -335,10 +335,10 @@
 
   <nav>
     <div class="nav-brand">
-      <div class="nav-logo-box">
-        <img src="https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png" style="width:22px;height:22px;border-radius:4px;object-fit:cover" onerror="this.parentElement.innerHTML='📡'">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span class="nav-name" style="letter-spacing:1px;font-size:16px">Wallace</span>
+        <span style="font-size:10px;color:var(--red);background:rgba(229,62,62,0.08);border:1px solid rgba(229,62,62,0.18);padding:1px 8px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;font-family:'DM Sans',sans-serif">Créateur</span>
       </div>
-      <div class="nav-name">STREMIO<span>FR</span></div>
     </div>
     <div class="nav-links">
       <a href="https://discord.gg/KN3vRqTHDa" class="nav-link" target="_blank">
@@ -392,16 +392,10 @@
       <div class="install-summary" id="install-summary"></div>
     </div>
     <div class="install-btns">
-      <button class="btn btn-red" id="btn-install" onclick="install('app')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Installer
-      </button>
-      <button class="btn btn-outline" onclick="install('web')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Web
-      </button>
+      <button class="btn btn-red" id="btn-install" onclick="install('app')">📺 Installer</button>
+      <button class="btn btn-outline" onclick="install('web')">🌐 Web</button>
       <button class="btn btn-ghost" onclick="copyLink()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         Copier
       </button>
     </div>
