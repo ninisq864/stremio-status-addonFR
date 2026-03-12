@@ -255,49 +255,56 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
       console.log(`📄 Monitor ${monitorId} ajouté au groupe "${targetGroup.name.replace(/\n/g,'').trim()}" (total: ${targetGroup.monitorList.length})`);
     }
 
-    // Config de la status page (arg 2 de saveStatusPage)
+    // Config EXACTE copiée depuis le payload WebSocket de Kuma (intercepté via DevTools)
     const pageConfig = {
-      slug: STATUS_SLUG,
-      title: pageData.title || 'StremioFR Addons',
-      description: pageData.description || '',
-      icon: pageData.icon || '/icon.svg',
-      theme: pageData.theme || 'dark',
-      published: pageData.published !== false,
-      showTags: pageData.showTags || false,
-      domainNameList: pageData.domainNameList || [],
-      customCSS: pageData.customCSS || '',
-      footerText: pageData.footerText || '',
-      showPoweredBy: pageData.showPoweredBy !== false,
-      googleAnalyticsId: pageData.googleAnalyticsId ?? null,
-      analyticsType: (["Google Analytics","Plausible","Umami"].includes(pageData.analyticsType) ? pageData.analyticsType : "Google Analytics"),
-      analyticsId: pageData.analyticsId ?? null,
-      analyticsScriptUrl: pageData.analyticsScriptUrl ?? null,
+      id:                   pageData.id ?? null,
+      slug:                 STATUS_SLUG,
+      title:                pageData.title                ?? 'StremioFR Addons',
+      description:          pageData.description          ?? '',
+      icon:                 pageData.icon                 ?? '/icon.svg',
+      theme:                pageData.theme                ?? 'auto',
+      published:            pageData.published            ?? true,
+      showTags:             pageData.showTags             ?? false,
+      domainNameList:       pageData.domainNameList       ?? [],
+      customCSS:            pageData.customCSS            ?? '',
+      footerText:           pageData.footerText           ?? '',
+      showPoweredBy:        pageData.showPoweredBy        ?? true,
+      autoRefreshInterval:  pageData.autoRefreshInterval  ?? 300,
+      analyticsType:        pageData.analyticsType        ?? null,
+      analyticsId:          pageData.analyticsId          ?? null,
+      analyticsScriptUrl:   pageData.analyticsScriptUrl   ?? null,
+      rssTitle:             pageData.rssTitle             ?? null,
+      showCertificateExpiry:pageData.showCertificateExpiry ?? false,
+      showOnlyLastHeartbeat:pageData.showOnlyLastHeartbeat ?? false,
     };
+    // arg 3 : l'URL de l'icône (pas une string vide !)
+    const iconUrl = pageData.icon ?? '';
+
     console.log('📄 pageConfig envoyé:', JSON.stringify(pageConfig));
 
     // publicGroupList normalisée (arg 4 de saveStatusPage)
     const normalizedGroupList = publicGroupList.map((g, i) => ({
-      id: g.id || undefined,
+      id: g.id ?? undefined,
       name: g.name,
       weight: typeof g.weight === 'number' ? g.weight : i,
       monitorList: (g.monitorList || []).map(m => ({
         id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
-        sendUrl: false,
+        sendUrl: m.sendUrl ?? false,
       })),
     }));
 
     console.log('📄 saveStatusPage (Socket.IO) groupes:', normalizedGroupList.map(g => g.name.replace(/\n/g,'').trim() + ':' + g.monitorList.length));
 
-    // ✅ saveStatusPage v2 : 4 arguments séparés + callback obligatoire
+    // ✅ saveStatusPage : payload exact intercepté depuis Kuma via DevTools
     await new Promise((resolve, reject) => {
       if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
       const timeout = setTimeout(() => reject(new Error('saveStatusPage timeout (10s)')), 10000);
       kumaSocket.emit(
         'saveStatusPage',
-        STATUS_SLUG,        // arg 1 : slug
-        pageConfig,         // arg 2 : config (objet plat)
-        '',                 // arg 3 : imgDataUrl (vide = pas de changement d'icône)
-        normalizedGroupList,// arg 4 : publicGroupList
+        STATUS_SLUG,         // arg 1 : slug
+        pageConfig,          // arg 2 : config complète
+        iconUrl,             // arg 3 : URL icône (pas vide !)
+        normalizedGroupList, // arg 4 : publicGroupList
         (res) => {
           clearTimeout(timeout);
           console.log('📄 saveStatusPage réponse Kuma:', JSON.stringify(res));
@@ -333,35 +340,38 @@ async function removeFromStatusPage(monitorId) {
     }));
 
     const pageConfig = {
-      slug: STATUS_SLUG,
-      title: pageData.title || 'StremioFR Addons',
-      description: pageData.description || '',
-      icon: pageData.icon || '/icon.svg',
-      theme: pageData.theme || 'dark',
-      published: pageData.published !== false,
-      showTags: pageData.showTags || false,
-      domainNameList: pageData.domainNameList || [],
-      customCSS: pageData.customCSS || '',
-      footerText: pageData.footerText || '',
-      showPoweredBy: pageData.showPoweredBy !== false,
-      googleAnalyticsId: pageData.googleAnalyticsId ?? null,
-      analyticsType: (["Google Analytics","Plausible","Umami"].includes(pageData.analyticsType) ? pageData.analyticsType : "Google Analytics"),
-      analyticsId: pageData.analyticsId ?? null,
-      analyticsScriptUrl: pageData.analyticsScriptUrl ?? null,
+      id:                   pageData.id ?? null,
+      slug:                 STATUS_SLUG,
+      title:                pageData.title                ?? 'StremioFR Addons',
+      description:          pageData.description          ?? '',
+      icon:                 pageData.icon                 ?? '/icon.svg',
+      theme:                pageData.theme                ?? 'auto',
+      published:            pageData.published            ?? true,
+      showTags:             pageData.showTags             ?? false,
+      domainNameList:       pageData.domainNameList       ?? [],
+      customCSS:            pageData.customCSS            ?? '',
+      footerText:           pageData.footerText           ?? '',
+      showPoweredBy:        pageData.showPoweredBy        ?? true,
+      autoRefreshInterval:  pageData.autoRefreshInterval  ?? 300,
+      analyticsType:        pageData.analyticsType        ?? null,
+      analyticsId:          pageData.analyticsId          ?? null,
+      analyticsScriptUrl:   pageData.analyticsScriptUrl   ?? null,
+      rssTitle:             pageData.rssTitle             ?? null,
+      showCertificateExpiry:pageData.showCertificateExpiry ?? false,
+      showOnlyLastHeartbeat:pageData.showOnlyLastHeartbeat ?? false,
     };
-    console.log('📄 pageConfig envoyé:', JSON.stringify(pageConfig));
+    const iconUrl = pageData.icon ?? '';
 
     const normalizedGroupList = publicGroupList.map((g, i) => ({
-      id: g.id || undefined,
+      id: g.id ?? undefined,
       name: g.name,
       weight: typeof g.weight === 'number' ? g.weight : i,
       monitorList: (g.monitorList || []).map(m => ({
         id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
-        sendUrl: false,
+        sendUrl: m.sendUrl ?? false,
       })),
     }));
 
-    // ✅ saveStatusPage v2 : 4 arguments séparés + callback obligatoire
     await new Promise((resolve, reject) => {
       if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
       const timeout = setTimeout(() => reject(new Error('saveStatusPage timeout (10s)')), 10000);
@@ -369,7 +379,7 @@ async function removeFromStatusPage(monitorId) {
         'saveStatusPage',
         STATUS_SLUG,
         pageConfig,
-        '',
+        iconUrl,
         normalizedGroupList,
         (res) => {
           clearTimeout(timeout);
