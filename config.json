@@ -32,7 +32,9 @@
     "21": "Kuu's Comet",
     "22": "WAStream",
     "23": "WAStream",
-    "24": "You"
+    "24": "You",
+    "49": "test finla",
+    "50": "insta test"
   },
   "customLinks": {
     "1": "https://",
@@ -58,10 +60,12 @@
     "21": "https://comet.stremio.ru/configure",
     "22": "https://",
     "23": "https://wastream.striho.top/configure",
-    "24": "https://www.youtube.com/"
+    "24": "https://www.youtube.com/",
+    "49": "https://www.youtube.com/",
+    "50": "https://www.instagram.com/"
   },
   "defaultPoster": "https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png",
   "cacheTTL": 25,
   "autoIncrementVersion": true,
-  "manifestVersion": "1.0.3"
+  "manifestVersion": "1.0.4"
 }
