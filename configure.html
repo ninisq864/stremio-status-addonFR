@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StremioFR — Installation</title>
+  <title>WAddons Status — Installation</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -350,7 +350,7 @@
 
   <div class="hero">
     <div class="hero-badge">Statut en temps réel</div>
-    <h1 class="hero-title">STATUT<span>DES ADDONS</span></h1>
+    <h1 class="hero-title">WADDONS<span>STATUS</span></h1>
     <p class="hero-sub">Sélectionne tes instances préférées et installe l'addon directement dans Stremio.</p>
     <div class="stats-bar">
       <div class="stat-item">
@@ -388,7 +388,7 @@
 
   <div class="install-bar" id="install-bar">
     <div class="install-info">
-      <div><strong id="count">0</strong> instance(s) sélectionnée(s)</div>
+      <div><strong id="count">0</strong> <span id="count-label">instance sélectionnée</span></div>
       <div class="install-summary" id="install-summary"></div>
     </div>
     <div class="install-btns">
@@ -532,6 +532,7 @@
     function updateBar() {
       const count = selected.size;
       document.getElementById('count').textContent = count;
+      document.getElementById('count-label').textContent = count > 1 ? 'instances sélectionnées' : 'instance sélectionnée';
       const bar = document.getElementById('install-bar');
       const summary = document.getElementById('install-summary');
       const btn = document.getElementById('btn-install');
