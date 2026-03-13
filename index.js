@@ -483,9 +483,9 @@ async function getUptimeData() {
 const manifest = {
   id: 'fr.stremio.status',
   version: '1.0.0',
-  name: '📡 Stremio FR - Statut Des Addons',
-  description: 'Statut en temps réel des addons et instances Stremio FR',
-  logo: 'https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png',
+  name: '📡 WAddons Status',
+  description: 'Suivi en temps réel des addons, instances stremio',
+  logo: "https://raw.githubusercontent.com/Ninisq864/stremio-status-addonFR/main/logo.png",
   catalogs: [{ type: 'other', id: 'stremio-status', name: '📡 Statut des Addons', extra: [{ name: 'search', isRequired: false }, { name: 'genre', isRequired: false }], extraSupported: ['search', 'genre'] }],
   resources: ['catalog'],
   types: ['other'],
@@ -664,8 +664,8 @@ app.get('/:userConfig/manifest.json', (req, res) => {
   const personalManifest = {
     id: `fr.stremio.status.${uc.slice(0, 12)}`,
     version: manifest.version,
-    name: '📡 Stremio FR - Statut Des Addons',
-    description: 'Statut en temps réel des addons et instances Stremio FR',
+    name: '📡 WAddons Status',
+    description: 'Suivi en temps réel des addons, instances stremio',
     logo: manifest.logo,
     catalogs: [{ type: 'other', id: `stremio-status-${uc.slice(0, 12)}`, name: '📡 Statut des Addons', extra: [{ name: 'search', isRequired: false }, { name: 'genre', isRequired: false }], extraSupported: ['search', 'genre'] }],
     resources: ['catalog'],
