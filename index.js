@@ -481,7 +481,7 @@ async function getUptimeData() {
 
 // ── MANIFEST ───────────────────────────────────────────────────────────────────
 const manifest = {
-  id: 'fr.stremio.status',
+  id: 'fr.waddons.status',
   version: '1.0.0',
   name: 'WAddons Status',
   description: 'Suivi en temps réel des addons, instances stremio',
@@ -662,7 +662,7 @@ app.get('/:userConfig/manifest.json', (req, res) => {
   const uc = req.params.userConfig;
   if (!/^[A-Za-z0-9_-]{1,200}$/.test(uc)) return res.status(400).json({ error: 'Config invalide' });
   const personalManifest = {
-    id: `fr.stremio.status.${uc.slice(0, 12)}`,
+    id: `fr.waddons.status.${uc.slice(0, 12)}`,
     version: manifest.version,
     name: 'WAddons Status',
     description: 'Suivi en temps réel des addons, instances stremio',
