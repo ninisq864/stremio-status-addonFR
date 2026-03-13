@@ -1,0 +1,10 @@
+<svg width="256" height="256" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" rx="28" fill="#0a0a0b"/>
+  <circle cx="50" cy="50" r="38" fill="rgba(229,62,62,0.07)" stroke="#e53e3e" stroke-width="2.5"/>
+  <text x="50" y="55" text-anchor="middle" dominant-baseline="middle" font-family="Arial Black,sans-serif" font-size="44" font-weight="900" fill="white">W</text>
+  <line x1="12" y1="50" x2="20" y2="50" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/>
+  <polyline points="20,50 23,39 28,61 33,44 36,50" fill="none" stroke="#e53e3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="36" y1="50" x2="64" y2="50" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/>
+  <polyline points="64,50 67,39 72,61 77,44 80,50" fill="none" stroke="#e53e3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="80" y1="50" x2="88" y2="50" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"/>
+</svg>
