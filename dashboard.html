@@ -1268,8 +1268,11 @@
       const safeGid = Number(group.id) || escapeHtml(name);
       html += `<div class="card" id="gcard-${safeGid}" draggable="true" data-gid="${safeGid}" ondragstart="dragStartGroup(event,this)" ondragover="dragOverGroup(event)" ondrop="dropGroup(event,this)" ondragleave="this.classList.remove('drag-over')" style="margin-bottom:16px">
         <div class="card-head">
-          <span class="drag-handle" title="Glisser pour réordonner groupes">⠿</span>
-          <span class="card-title">${escapeHtml(name)} <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span></span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="drag-handle" title="Glisser pour réordonner groupes">⠿</span>
+            <span class="card-title">${escapeHtml(name)} <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span></span>
+          </div>
+          <button class="btn-delete" onclick="deleteGroup(${safeGid}, '${escapeHtml(name).replace(/'/g,"\\'")}', event)" title="Supprimer ce groupe" style="font-size:13px;padding:5px 8px">🗑️</button>
         </div>`;
 
       group.monitorList.forEach(m => {
@@ -1610,6 +1613,25 @@
       await fetch(`/api/kuma/monitors/${id}`, { method: 'DELETE', headers: { 'x-admin-token': token } });
       toast(`🗑️ Monitor "${name}" supprimé`);
       document.getElementById(`mrow-${id}`)?.remove();
+    } catch(e) { toast('❌ ' + e.message); }
+  }
+
+  async function deleteGroup(id, name, e) {
+    e?.stopPropagation();
+    if (!confirm(`Supprimer le groupe "${name}" ?\n\nAttention : les monitors enfants resteront dans Uptime Kuma sans groupe.`)) return;
+    try {
+      const res = await fetch(`/api/kuma/monitors/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-token': token }
+      });
+      if (res.ok) {
+        toast(`🗑️ Groupe "${name}" supprimé`);
+        document.getElementById(`gcard-${id}`)?.remove();
+        setTimeout(() => loadInstancesWithKuma(), 800);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast('❌ ' + (err.error || 'Erreur lors de la suppression'));
+      }
     } catch(e) { toast('❌ ' + e.message); }
   }
 
