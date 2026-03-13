@@ -328,16 +328,31 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
   }
 }
 
-// Retire un monitor de la status page
+// Retire un monitor (ou un groupe entier) de la status page
 async function removeFromStatusPage(monitorId) {
   try {
     const pageData = await fetchStatusPageStructure();
     if (!pageData) return false;
 
-    const publicGroupList = (pageData.publicGroupList || []).map(g => ({
-      ...g,
-      monitorList: g.monitorList.filter(m => m.id !== monitorId)
-    }));
+    // Détecter si c'est un groupe Kuma (type === 'group')
+    const isGroup = kumaMonitors[monitorId]?.type === 'group';
+
+    let publicGroupList;
+    if (isGroup) {
+      // Supprimer le groupe entier de la status page
+      publicGroupList = (pageData.publicGroupList || []).filter(g => {
+        // Comparer avec l'ID du groupe Kuma si disponible, sinon garder tout
+        const gid = g.id;
+        return gid !== monitorId;
+      });
+      console.log(`📄 Suppression groupe ID ${monitorId} de la status page`);
+    } else {
+      // Supprimer seulement le monitor de son groupe
+      publicGroupList = (pageData.publicGroupList || []).map(g => ({
+        ...g,
+        monitorList: g.monitorList.filter(m => m.id !== monitorId)
+      }));
+    }
 
     const pageConfig = {
       id:                   pageData.id ?? null,
