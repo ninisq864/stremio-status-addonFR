@@ -348,6 +348,11 @@
     }
     .link-input:focus { outline: none; border-color: var(--accent); }
 
+    .row-group-badge {
+      font-size: 10px; color: var(--muted); background: var(--surface2);
+      border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px;
+      font-weight: 600; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.3px;
+    }
     .action-btn {
       background: none;
       border: 1px solid var(--border);
@@ -761,6 +766,7 @@
             <button class="btn-cancel" onclick="toggleAddForm(null)" style="margin-top:18px">Annuler</button>
           </div>
         </div>
+        <div style="margin-bottom:12px"><input id="instance-search" class="form-input" placeholder="Rechercher une instance..." oninput="filterInstances(this.value)" style="width:100%;max-width:360px;font-size:13px"></div>
         <div id="instances-by-group"></div>
       </div>
 
@@ -1276,11 +1282,12 @@
         const displayName = customNames[sid] || m.name;
         const link = customLinks[sid] || kumaData[sid]?.url || '';
 
-        html += `<div class="row" id="row-${sid}" draggable="true" data-mid="${sid}" data-gname="${escapeHtml(name)}" ondragstart="dragStartRow(event,this)" ondragover="dragOverRow(event)" ondrop="dropRow(event,this)" ondragleave="this.classList.remove('drag-over')" style="${isHidden?'opacity:0.4':''}">
+        html += `<div class="row" id="row-${sid}" draggable="true" data-mid="${sid}" data-gname="${escapeHtml(name)}" data-search="${escapeHtml(displayName).toLowerCase()}" ondragstart="dragStartRow(event,this)" ondragover="dragOverRow(event)" ondrop="dropRow(event,this)" ondragleave="this.classList.remove('drag-over')" style="${isHidden?'opacity:0.4':''}">
           <span class="drag-handle" title="Glisser pour réordonner">⠿</span>
           <div class="dot ${isUp?'up':'down'}"></div>
           <input class="inline-input" value="${escapeHtml(displayName)}" id="name-${sid}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
-          <input class="link-input" value="${escapeHtml(link)}" id="link-${sid}" placeholder="https://... (lien optionnel)" title="Lien du site hébergeur">
+          <span class="row-group-badge">${escapeHtml(name)}</span>
+          <input class="link-input" value="${escapeHtml(link)}" id="link-${sid}" placeholder="https://... (lien optionnel)" title="${link || 'Aucune URL'}">
           <button class="action-btn" onclick="saveInstance(${sid})">💾 Sauv.</button>
           <button class="action-btn ${isHidden?'success':''}" onclick="toggleHide(${sid}, this)">
             ${isHidden?'👁️ Afficher':'🚫 Masquer'}
@@ -1818,6 +1825,18 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
       body: JSON.stringify(cfg)
+    });
+  }
+
+  function filterInstances(query) {
+    const q = query.toLowerCase().trim();
+    document.querySelectorAll('.row').forEach(row => {
+      const search = (row.dataset.search || '') + ' ' + (row.dataset.gname || '').toLowerCase();
+      row.style.display = (!q || search.includes(q)) ? '' : 'none';
+    });
+    document.querySelectorAll('.card[id^="gcard-"]').forEach(card => {
+      const visibleRows = [...card.querySelectorAll('.row')].filter(r => r.style.display !== 'none');
+      card.style.display = visibleRows.length === 0 && q ? 'none' : '';
     });
   }
 
