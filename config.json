@@ -65,7 +65,7 @@
     "49": "https://www.youtube.com/",
     "50": "https://www.instagram.com/"
   },
-  "defaultPoster": "https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/main/logo.png",
+  "defaultPoster": "https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/refs/heads/main/logo.svg",
   "cacheTTL": 25,
   "autoIncrementVersion": false,
   "manifestVersion": "1.0.5"
