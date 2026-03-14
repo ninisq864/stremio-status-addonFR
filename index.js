@@ -329,23 +329,22 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
 }
 
 // Retire un monitor (ou un groupe entier) de la status page
-async function removeFromStatusPage(monitorId) {
+async function removeFromStatusPage(monitorId, groupNameHint) {
   try {
     const pageData = await fetchStatusPageStructure();
     if (!pageData) return false;
 
-    // Détecter si c'est un groupe Kuma (type === 'group')
+    // Si un nom de groupe est fourni, supprimer tout le groupe par nom
     const kumaMonitor = kumaMonitors[monitorId];
-    const isGroup = kumaMonitor?.type === 'group';
+    const isGroup = !!(groupNameHint || kumaMonitor?.type === 'group');
 
     let publicGroupList;
-    if (isGroup) {
-      // Filtrer par nom car les IDs de la status page != IDs Kuma
-      const groupName = (kumaMonitor.name || '').replace(/\n/g, '').trim().toLowerCase();
-      console.log(`📄 Suppression groupe "${groupName}" (ID Kuma: ${monitorId}) de la status page`);
+    if (isGroup && groupNameHint) {
+      const targetName = groupNameHint.replace(/\n/g, '').trim().toLowerCase();
+      console.log(`📄 Suppression groupe par nom "${targetName}" de la status page`);
       publicGroupList = (pageData.publicGroupList || []).filter(g => {
         const gName = (g.name || '').replace(/\n/g, '').trim().toLowerCase();
-        return gName !== groupName;
+        return gName !== targetName;
       });
       console.log(`📄 Groupes restants: ${publicGroupList.map(g => g.name.replace(/\n/g,'').trim()).join(', ')}`);
     } else {
@@ -974,7 +973,8 @@ app.delete('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
   try {
     const id = parseMonitorId(req.params.id);
     if (!id) return res.status(400).json({ error: 'ID monitor invalide' });
-    await removeFromStatusPage(id); // retirer de la status page
+    const groupName = typeof req.body?.groupName === 'string' ? req.body.groupName : null;
+    await removeFromStatusPage(id, groupName); // retirer de la status page
     await kumaEmit('deleteMonitor', id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

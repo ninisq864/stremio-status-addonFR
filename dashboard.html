@@ -1622,7 +1622,8 @@
     try {
       const res = await fetch(`/api/kuma/monitors/${id}`, {
         method: 'DELETE',
-        headers: { 'x-admin-token': token }
+        headers: { 'x-admin-token': token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupName: name })
       });
       if (res.ok) {
         toast(`🗑️ Groupe "${name}" supprimé`);
