@@ -1628,7 +1628,9 @@
       if (res.ok) {
         toast(`🗑️ Groupe "${name}" supprimé`);
         document.getElementById(`gcard-${id}`)?.remove();
-        setTimeout(() => loadInstancesWithKuma(), 800);
+        await fetch('/api/cache/refresh', { method: 'POST', headers: { 'x-admin-token': token } });
+        await loadData();
+        await loadInstancesWithKuma();
       } else {
         const err = await res.json().catch(() => ({}));
         toast('❌ ' + (err.error || 'Erreur lors de la suppression'));
@@ -1666,7 +1668,9 @@
           toast('✅ Groupe créé !');
           toggleAddForm();
           document.getElementById('new-monitor-name').value = '';
-          setTimeout(() => loadInstancesWithKuma(), 1500);
+          await fetch('/api/cache/refresh', { method: 'POST', headers: { 'x-admin-token': token } });
+          await loadData();
+          await loadInstancesWithKuma();
         } else {
           const err = await res.json();
           toast('❌ ' + (err.error || 'Erreur'));
@@ -1693,7 +1697,9 @@
         toggleAddForm();
         document.getElementById('new-monitor-name').value = '';
         document.getElementById('new-monitor-url').value = '';
-        setTimeout(() => loadInstancesWithKuma(), 1500);
+        await fetch('/api/cache/refresh', { method: 'POST', headers: { 'x-admin-token': token } });
+        await loadData();
+        await loadInstancesWithKuma();
       } else {
         const err = await res.json();
         toast('❌ ' + (err.error || 'Erreur'));
