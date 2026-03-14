@@ -1168,7 +1168,10 @@
   }
 
   function uptimeColor(u) {
-    return u >= 99 ? 'var(--green)' : u >= 95 ? '#f59e0b' : 'var(--red)';
+    if (u >= 75) return '#48bb78';      // vert — 75-100%
+    if (u >= 50) return '#ecc94b';      // jaune — 50-75%
+    if (u >= 25) return '#f97316';      // orange — 25-50%
+    return '#e53e3e';                   // rouge — 0-25%
   }
 
   function getGroupLogo(name) {
