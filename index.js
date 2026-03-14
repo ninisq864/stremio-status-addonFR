@@ -1028,10 +1028,15 @@ app.put('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
     }
     if (safeBody.interval) safeBody.interval = Math.min(Math.max(parseInt(safeBody.interval) || 60, 20), 3600);
     const oldName = monitor.name;
+    const oldNameHint = typeof req.body.oldName === 'string' ? req.body.oldName : oldName;
+    console.log(`📡 editMonitor id=${id} type="${monitor.type}" oldName="${oldName}" newName="${safeBody.name || '(inchangé)'}"`);
     await kumaEmit('editMonitor', { ...monitor, ...safeBody, id });
     // Si renommage d'un groupe, mettre à jour la status page
-    if (safeBody.name && safeBody.name !== oldName && monitor.type === 'group') {
-      await renameGroupInStatusPage(oldName, safeBody.name);
+    // On accepte type 'group' ou absence de type (groupes Kuma) et on utilise oldNameHint comme fallback
+    const isGroup = monitor.type === 'group' || monitor.type == null || monitor.type === '';
+    if (safeBody.name && safeBody.name !== oldNameHint && isGroup) {
+      console.log(`📡 Renommage groupe status page: "${oldNameHint}" → "${safeBody.name}"`);
+      await renameGroupInStatusPage(oldNameHint, safeBody.name);
     }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

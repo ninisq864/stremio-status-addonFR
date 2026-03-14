@@ -1648,18 +1648,15 @@
       const res = await fetch(`/api/kuma/monitors/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        body: JSON.stringify({ name: newName })
+        body: JSON.stringify({ name: newName, oldName: oldName })
       });
       if (res.ok) {
-        input.dataset.original = newName;
-        // Mettre à jour le bouton delete avec le nouveau nom
-        const card = document.getElementById(`gcard-${id}`);
-        if (card) {
-          const btn = card.querySelector('.btn-delete');
-          if (btn) btn.setAttribute('onclick', `deleteGroup(${id}, '${newName.replace(/'/g,"\\'")}', event)`);
-        }
         toast(`✅ Groupe renommé en "${newName}"`);
         await fetch('/api/cache/refresh', { method: 'POST', headers: { 'x-admin-token': token } });
+        // Attendre que Kuma propage le renommage avant de recharger
+        await new Promise(r => setTimeout(r, 1500));
+        await loadData();
+        await loadInstancesWithKuma();
       } else {
         const err = await res.json().catch(() => ({}));
         toast('❌ ' + (err.error || 'Erreur renommage'));
