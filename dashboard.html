@@ -609,6 +609,23 @@
     /* DRAG & DROP */
     .drag-handle { cursor: grab; color: var(--muted); font-size: 14px; padding: 0 4px; user-select: none; }
     .drag-handle:active { cursor: grabbing; }
+
+    .group-name-input {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      cursor: text;
+      transition: all 0.15s;
+      min-width: 60px;
+      max-width: 220px;
+    }
+    .group-name-input:hover { border-color: var(--border); background: var(--surface2); }
+    .group-name-input:focus { outline: none; border-color: var(--accent); background: var(--input-bg); }
     .group-card.dragging { opacity: 0.4; border: 1px dashed var(--accent); }
     .group-card.drag-over { border-top: 2px solid var(--accent); }
     .row.dragging { opacity: 0.4; }
@@ -1273,7 +1290,11 @@
         <div class="card-head">
           <div style="display:flex;align-items:center;gap:10px">
             <span class="drag-handle" title="Glisser pour réordonner groupes">⠿</span>
-            <span class="card-title">${escapeHtml(name)} <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span></span>
+            <input class="group-name-input" id="gname-${safeGid}" value="${escapeHtml(name)}" data-original="${escapeHtml(name)}"
+              onblur="saveGroupName(${safeGid}, this)"
+              onkeydown="if(event.key==='Enter'){this.blur()}else if(event.key==='Escape'){this.value=this.dataset.original;this.blur()}"
+              title="Cliquer pour renommer le groupe">
+            <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span>
           </div>
           <button class="btn-delete" onclick="deleteGroup(${safeGid}, '${escapeHtml(name).replace(/'/g,"\\'")}', event)" title="Supprimer ce groupe" style="font-size:13px;padding:5px 8px">🗑️</button>
         </div>`;
@@ -1617,6 +1638,34 @@
       toast(`🗑️ Monitor "${name}" supprimé`);
       document.getElementById(`mrow-${id}`)?.remove();
     } catch(e) { toast('❌ ' + e.message); }
+  }
+
+  async function saveGroupName(id, input) {
+    const newName = input.value.trim();
+    const oldName = input.dataset.original;
+    if (!newName || newName === oldName) { input.value = oldName; return; }
+    try {
+      const res = await fetch(`/api/kuma/monitors/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ name: newName })
+      });
+      if (res.ok) {
+        input.dataset.original = newName;
+        // Mettre à jour le bouton delete avec le nouveau nom
+        const card = document.getElementById(`gcard-${id}`);
+        if (card) {
+          const btn = card.querySelector('.btn-delete');
+          if (btn) btn.setAttribute('onclick', `deleteGroup(${id}, '${newName.replace(/'/g,"\\'")}', event)`);
+        }
+        toast(`✅ Groupe renommé en "${newName}"`);
+        await fetch('/api/cache/refresh', { method: 'POST', headers: { 'x-admin-token': token } });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast('❌ ' + (err.error || 'Erreur renommage'));
+        input.value = oldName;
+      }
+    } catch(e) { toast('❌ ' + e.message); input.value = oldName; }
   }
 
   async function deleteGroup(id, name, e) {

@@ -413,6 +413,71 @@ async function removeFromStatusPage(monitorId, groupNameHint) {
   }
 }
 
+// Renomme un groupe dans la status page
+async function renameGroupInStatusPage(oldName, newName) {
+  try {
+    const pageData = await fetchStatusPageStructure();
+    if (!pageData) return false;
+    const cleanOld = oldName.replace(/
+/g, '').trim().toLowerCase();
+    const publicGroupList = (pageData.publicGroupList || []).map(g => {
+      const gName = (g.name || '').replace(/
+/g, '').trim().toLowerCase();
+      if (gName === cleanOld) {
+        console.log(`📄 Renommage groupe "${oldName}" → "${newName}" dans la status page`);
+        return { ...g, name: newName };
+      }
+      return g;
+    });
+
+    const pageConfig = {
+      id: pageData.id ?? null, slug: STATUS_SLUG,
+      title: pageData.title ?? 'StremioFR Addons',
+      description: pageData.description ?? '',
+      icon: pageData.icon ?? '/icon.svg',
+      theme: pageData.theme ?? 'auto',
+      published: pageData.published ?? true,
+      showTags: pageData.showTags ?? false,
+      domainNameList: pageData.domainNameList ?? [],
+      customCSS: pageData.customCSS ?? '',
+      footerText: pageData.footerText ?? '',
+      showPoweredBy: pageData.showPoweredBy ?? true,
+      autoRefreshInterval: pageData.autoRefreshInterval ?? 300,
+      analyticsType: pageData.analyticsType ?? null,
+      analyticsId: pageData.analyticsId ?? null,
+      analyticsScriptUrl: pageData.analyticsScriptUrl ?? null,
+      rssTitle: pageData.rssTitle ?? null,
+      showCertificateExpiry: pageData.showCertificateExpiry ?? false,
+      showOnlyLastHeartbeat: pageData.showOnlyLastHeartbeat ?? false,
+    };
+    const iconUrl = pageData.icon ?? '';
+    const normalizedGroupList = publicGroupList.map((g, i) => ({
+      id: g.id ?? undefined, name: g.name,
+      weight: typeof g.weight === 'number' ? g.weight : i,
+      monitorList: (g.monitorList || []).map(m => ({
+        id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
+        sendUrl: m.sendUrl ?? false,
+      })),
+    }));
+
+    await new Promise((resolve, reject) => {
+      if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
+      const timeout = setTimeout(() => reject(new Error('saveStatusPage timeout (10s)')), 10000);
+      kumaSocket.emit('saveStatusPage', STATUS_SLUG, pageConfig, iconUrl, normalizedGroupList, (res) => {
+        clearTimeout(timeout);
+        console.log('📄 renameGroupInStatusPage réponse:', JSON.stringify(res));
+        if (res && res.ok === false) reject(new Error(res.msg || 'Erreur saveStatusPage'));
+        else resolve(res);
+      });
+    });
+    cache = { data: null, ts: 0 };
+    return true;
+  } catch(e) {
+    console.error('❌ Erreur renameGroupInStatusPage:', e.message);
+    return false;
+  }
+}
+
 function kumaEmit(event, data) {
   return new Promise((resolve, reject) => {
     if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
@@ -964,7 +1029,12 @@ app.put('/api/kuma/monitors/:id', authMiddleware, async (req, res) => {
       if (!['http:', 'https:'].includes(parsed.protocol)) return res.status(400).json({ error: 'url doit utiliser http ou https' });
     }
     if (safeBody.interval) safeBody.interval = Math.min(Math.max(parseInt(safeBody.interval) || 60, 20), 3600);
+    const oldName = monitor.name;
     await kumaEmit('editMonitor', { ...monitor, ...safeBody, id });
+    // Si renommage d'un groupe, mettre à jour la status page
+    if (safeBody.name && safeBody.name !== oldName && monitor.type === 'group') {
+      await renameGroupInStatusPage(oldName, safeBody.name);
+    }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
