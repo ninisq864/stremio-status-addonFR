@@ -335,17 +335,19 @@ async function removeFromStatusPage(monitorId) {
     if (!pageData) return false;
 
     // Détecter si c'est un groupe Kuma (type === 'group')
-    const isGroup = kumaMonitors[monitorId]?.type === 'group';
+    const kumaMonitor = kumaMonitors[monitorId];
+    const isGroup = kumaMonitor?.type === 'group';
 
     let publicGroupList;
     if (isGroup) {
-      // Supprimer le groupe entier de la status page
+      // Filtrer par nom car les IDs de la status page != IDs Kuma
+      const groupName = (kumaMonitor.name || '').replace(/\n/g, '').trim().toLowerCase();
+      console.log(`📄 Suppression groupe "${groupName}" (ID Kuma: ${monitorId}) de la status page`);
       publicGroupList = (pageData.publicGroupList || []).filter(g => {
-        // Comparer avec l'ID du groupe Kuma si disponible, sinon garder tout
-        const gid = g.id;
-        return gid !== monitorId;
+        const gName = (g.name || '').replace(/\n/g, '').trim().toLowerCase();
+        return gName !== groupName;
       });
-      console.log(`📄 Suppression groupe ID ${monitorId} de la status page`);
+      console.log(`📄 Groupes restants: ${publicGroupList.map(g => g.name.replace(/\n/g,'').trim()).join(', ')}`);
     } else {
       // Supprimer seulement le monitor de son groupe
       publicGroupList = (pageData.publicGroupList || []).map(g => ({
