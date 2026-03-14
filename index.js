@@ -418,11 +418,9 @@ async function renameGroupInStatusPage(oldName, newName) {
   try {
     const pageData = await fetchStatusPageStructure();
     if (!pageData) return false;
-    const cleanOld = oldName.replace(/
-/g, '').trim().toLowerCase();
+    const cleanOld = oldName.replace(/\n/g, '').trim().toLowerCase();
     const publicGroupList = (pageData.publicGroupList || []).map(g => {
-      const gName = (g.name || '').replace(/
-/g, '').trim().toLowerCase();
+      const gName = (g.name || '').replace(/\n/g, '').trim().toLowerCase();
       if (gName === cleanOld) {
         console.log(`📄 Renommage groupe "${oldName}" → "${newName}" dans la status page`);
         return { ...g, name: newName };
