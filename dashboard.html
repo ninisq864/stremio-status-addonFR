@@ -736,7 +736,8 @@
           <div class="page-sub">Modifiez les noms, URLs, masquez, mettez en pause ou supprimez vos monitors</div>
         </div>
         <div id="kuma-status-wrap"></div>
-        <div style="margin-bottom:12px;display:flex;justify-content:flex-end">
+        <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <button class="btn-add" onclick="saveAllInstances()" style="background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.3)" id="btn-save-all">💾 Tout sauvegarder</button>
           <button class="btn-add" onclick="syncAllFromKuma()" style="background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.3)">🔄 Synchroniser tout depuis Kuma</button>
         </div>
         <div class="card" style="margin-bottom:12px">
@@ -1313,7 +1314,6 @@
           <span class="drag-handle" title="Glisser pour réordonner">⠿</span>
           <div class="dot ${isUp?'up':'down'}"></div>
           <input class="inline-input" value="${escapeHtml(displayName)}" id="name-${sid}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
-          <span class="row-group-badge">${escapeHtml(name)}</span>
           <input class="link-input" value="${escapeHtml(link)}" id="link-${sid}" placeholder="https://... (lien optionnel)" title="${link || 'Aucune URL'}">
           <button class="action-btn" onclick="saveInstance(${sid})">💾 Sauv.</button>
           <button class="action-btn ${isHidden?'success':''}" onclick="toggleHide(${sid}, this)">
@@ -1329,6 +1329,30 @@
 
     document.getElementById('instances-by-group').innerHTML = html;
     populateParentGroups(groups);
+  }
+
+  async function saveAllInstances() {
+    const btn = document.getElementById('btn-save-all');
+    const rows = document.querySelectorAll('.row[data-mid]');
+    if (!rows.length) return toast('❌ Aucune instance à sauvegarder');
+    btn.textContent = '⏳ Sauvegarde...';
+    btn.disabled = true;
+    const cfg = { ...currentConfig };
+    if (!cfg.customNames) cfg.customNames = {};
+    if (!cfg.customLinks) cfg.customLinks = {};
+    let count = 0;
+    rows.forEach(row => {
+      const id = row.dataset.mid;
+      const nameEl = document.getElementById(`name-${id}`);
+      const linkEl = document.getElementById(`link-${id}`);
+      if (nameEl) { cfg.customNames[id] = nameEl.value.trim(); count++; }
+      if (linkEl) cfg.customLinks[id] = linkEl.value.trim();
+    });
+    await saveConfig(cfg);
+    currentConfig = cfg;
+    btn.textContent = '💾 Tout sauvegarder';
+    btn.disabled = false;
+    toast(`✅ ${count} instances sauvegardées !`);
   }
 
   async function saveInstance(id) {
