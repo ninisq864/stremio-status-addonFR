@@ -348,6 +348,23 @@
     }
     .link-input:focus { outline: none; border-color: var(--accent); }
 
+    .link-display {
+      font-family: 'Rajdhani', monospace;
+      font-size: 11px;
+      color: var(--text2);
+      cursor: pointer;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+      transition: all 0.15s;
+    }
+    .link-display:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
     .row-group-badge {
       font-size: 10px; color: var(--muted); background: var(--surface2);
       border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px;
@@ -1314,7 +1331,10 @@
           <span class="drag-handle" title="Glisser pour réordonner">⠿</span>
           <div class="dot ${isUp?'up':'down'}"></div>
           <input class="inline-input" value="${escapeHtml(displayName)}" id="name-${sid}" placeholder="Nom affiché" title="Nom affiché dans Stremio">
-          <input class="link-input" value="${escapeHtml(link)}" id="link-${sid}" placeholder="https://... (lien optionnel)" title="${link || 'Aucune URL'}">
+          <span class="link-display" id="link-display-${sid}" onclick="copyLink(${sid})" title="${link ? 'Cliquer pour copier' : 'Aucune URL'}">
+            ${link ? '📋 ' + escapeHtml(link) : '<span style=\"color:var(--muted);font-size:11px\">— pas d\'URL —</span>'}
+          </span>
+          <input class="link-input" value="${escapeHtml(link)}" id="link-${sid}" placeholder="https://... (lien optionnel)" title="${link || 'Aucune URL'}" style="display:none">
           <button class="action-btn" onclick="saveInstance(${sid})">💾 Sauv.</button>
           <button class="action-btn ${isHidden?'success':''}" onclick="toggleHide(${sid}, this)">
             ${isHidden?'👁️ Afficher':'🚫 Masquer'}
@@ -1355,6 +1375,20 @@
     toast(`✅ ${count} instances sauvegardées !`);
   }
 
+  function copyLink(id) {
+    const input = document.getElementById(`link-${id}`);
+    const display = document.getElementById(`link-display-${id}`);
+    const url = input?.value?.trim();
+    if (!url) return toast('❌ Aucune URL définie');
+    navigator.clipboard.writeText(url);
+    if (display) {
+      const prev = display.innerHTML;
+      display.innerHTML = '✅ Copié !';
+      display.style.color = 'var(--green)';
+      setTimeout(() => { display.innerHTML = prev; display.style.color = ''; }, 1500);
+    }
+  }
+
   async function saveInstance(id) {
     const name = document.getElementById(`name-${id}`).value.trim();
     const link = document.getElementById(`link-${id}`).value.trim();
@@ -1365,6 +1399,12 @@
     cfg.customLinks[id] = link;
     await saveConfig(cfg);
     currentConfig = cfg;
+    // Rafraîchir le link-display
+    const display = document.getElementById(`link-display-${id}`);
+    if (display) {
+      display.innerHTML = link ? '📋 ' + escapeHtml(link) : '<span style="color:var(--muted);font-size:11px">— pas d\'URL —</span>';
+      display.title = link ? 'Cliquer pour copier' : 'Aucune URL';
+    }
     toast('✅ Instance mise à jour !');
   }
 
