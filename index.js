@@ -829,7 +829,7 @@ app.get('/api/connection-logs', authMiddleware, (req, res) => {
 app.get('/api/data', async (req, res) => {
   try {
     const data = await getUptimeData();
-    res.json({ ...data, cacheAge: Math.round((Date.now() - cache.ts) / 1000) });
+    res.json({ ...data, cacheAge: Math.round((Date.now() - cache.ts) / 1000), lastSync: cache.ts || null });
   } catch(e) {
     console.error('Erreur /api/data:', e.message);
     res.status(500).json({ error: 'Erreur lors de la récupération des données' });
