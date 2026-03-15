@@ -50,6 +50,44 @@
       transition: background 0.3s, color 0.3s;
     }
 
+
+    /* HISTORIQUE */
+    .history-group { margin-bottom: 24px; }
+    .history-group-title {
+      font-size: 13px; font-weight: 700; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin-bottom: 10px; padding: 0 2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .history-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .history-name {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      min-width: 180px; flex-shrink: 0;
+    }
+    .history-bar-wrap {
+      flex: 1; height: 28px; display: flex; gap: 2px; align-items: stretch;
+    }
+    .history-bar-wrap .hb {
+      flex: 1; border-radius: 3px; min-width: 3px;
+      transition: opacity 0.1s;
+      cursor: default;
+    }
+    .history-bar-wrap .hb:hover { opacity: 0.7; }
+    .history-stat {
+      font-size: 12px; font-weight: 700; font-family: 'Rajdhani', monospace;
+      min-width: 48px; text-align: right; flex-shrink: 0;
+    }
+    .history-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
     /* LOGIN */
     #login-screen {
       min-height: 100vh;
@@ -805,6 +843,16 @@
         <div id="instances-by-group"></div>
       </div>
 
+
+      <!-- HISTORIQUE -->
+      <div class="page" id="page-history">
+        <div class="page-header">
+          <div class="page-title">Historique</div>
+          <div class="page-sub">Uptime des dernières 24h par monitor</div>
+        </div>
+        <div id="history-list"></div>
+      </div>
+
       <!-- LOGOS -->
       <div class="page" id="page-logos">
         <div class="page-header">
@@ -1194,6 +1242,61 @@
   function updateCacheAge() {
     if (!allData) return;
     document.getElementById('cache-age').textContent = `${allData.cacheAge}s`;
+  }
+
+
+  // ── HISTORIQUE ────────────────────────────────────────────────────────────
+  function renderHistory() {
+    if (!allData) return;
+    const { groups, heartbeats } = allData;
+    const cfg = loadConfig ? currentConfig : {};
+    const customNames = currentConfig?.customNames || {};
+    let html = '';
+
+    groups.forEach(group => {
+      const name = group.name.replace(/\n/g,'').trim();
+      if (!group.monitorList.length) return;
+
+      html += `<div class="history-group">
+        <div class="history-group-title">
+          <span>${escapeHtml(name)}</span>
+          <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none">${group.monitorList.length} monitor${group.monitorList.length > 1 ? 's' : ''}</span>
+        </div>`;
+
+      group.monitorList.forEach(m => {
+        const sid = Number(m.id);
+        if (!Number.isInteger(sid)) return;
+        const hbs = (heartbeats[sid] || []).slice(-200); // ~dernières 24h selon intervalle
+        const displayName = customNames[sid] || m.name;
+        const last = hbs.slice(-1)[0];
+        const isUp = last && last.status === 1;
+        const uptime = hbs.length ? Math.round(hbs.filter(h => h.status === 1).length / hbs.length * 10000) / 100 : 0;
+        const color = uptimeColor(uptime);
+
+        // Générer les barres heartbeat
+        let bars = '';
+        if (hbs.length) {
+          hbs.forEach(hb => {
+            const c = hb.status === 1 ? '#48bb78' : hb.status === 0 ? '#e53e3e' : '#666';
+            const t = hb.time ? new Date(hb.time).toLocaleString('fr-FR') : '';
+            bars += `<div class="hb" style="background:${c}" title="${t}"></div>`;
+          });
+        } else {
+          bars = `<div style="flex:1;display:flex;align-items:center;padding-left:8px;font-size:11px;color:var(--muted)">Aucune donnée</div>`;
+        }
+
+        html += `<div class="history-row">
+          <div class="history-dot" style="background:${isUp ? 'var(--green)' : 'var(--red)'}"></div>
+          <div class="history-name">${escapeHtml(displayName)}</div>
+          <div class="history-bar-wrap">${bars}</div>
+          <div class="history-stat" style="color:${color}">${uptime}%</div>
+        </div>`;
+      });
+
+      html += `</div>`;
+    });
+
+    document.getElementById('history-list').innerHTML = html || '<div style="padding:40px;text-align:center;color:var(--muted)">Aucune donnée disponible</div>';
   }
 
   // ── STATS ─────────────────────────────────────────────────────────────────
