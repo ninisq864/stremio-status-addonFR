@@ -870,7 +870,7 @@
           <div class="page-title">Utilisateurs</div>
           <div class="page-sub">Stats d'installation et d'utilisation de l'addon</div>
         </div>
-        <div class="stats-grid" style="margin-bottom:24px">
+        <div class="stats-grid" style="margin-bottom:24px;grid-template-columns:repeat(3,1fr)">
           <div class="stat-card c-orange">
             <div class="stat-label">TOTAL CONFIGS UNIQUES</div>
             <div class="stat-value" id="users-total">—</div>
@@ -1360,10 +1360,12 @@
       } else {
         data.recent.forEach(r => {
           const date = new Date(r.lastSeen).toLocaleString('fr-FR');
+          const detail = r.isAll
+            ? '<span style="font-size:11px;color:var(--green);font-weight:600">⭐ Tout installé</span>'
+            : `<span style="font-size:11px;color:var(--muted)">${r.monitors} instance${r.monitors > 1 ? 's' : ''}</span><span style="font-size:11px;color:var(--muted);margin-left:12px">${r.groups} groupe${r.groups > 1 ? 's' : ''}</span>`;
           recentHtml += `<div class="row">
             <span style="font-size:12px;color:var(--text2);flex:1">${date}</span>
-            <span style="font-size:11px;color:var(--muted)">${r.monitors} instance${r.monitors > 1 ? 's' : ''}</span>
-            <span style="font-size:11px;color:var(--muted);margin-left:12px">${r.groups} groupe${r.groups > 1 ? 's' : ''}</span>
+            ${detail}
           </div>`;
         });
       }

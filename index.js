@@ -786,18 +786,25 @@ const userStats = {
 const MAX_CONFIGS = 500;
 
 function trackUserConfig(encoded) {
-  if (!encoded || encoded === 'default') return;
+  // Accepter aussi 'default' et configs vides = "tout installer"
+  const isDefault = !encoded || encoded === 'default';
+  const key = isDefault ? '__all__' : encoded;
+
   try {
-    const userCfg = decodeUserConfig(encoded);
-    if (!userCfg) return;
+    const userCfg = isDefault ? { monitors: [], groups: [] } : decodeUserConfig(encoded);
+    if (!isDefault && !userCfg) return;
+
+    const monitors = userCfg?.monitors || [];
+    const groups = userCfg?.groups || [];
 
     // Mettre à jour la config
-    const existing = userStats.configs.get(encoded) || { monitors: userCfg.monitors, groups: userCfg.groups, firstSeen: Date.now(), lastSeen: 0, count: 0 };
+    const existing = userStats.configs.get(key) || { monitors, groups, isAll: isDefault, firstSeen: Date.now(), lastSeen: 0, count: 0 };
     existing.lastSeen = Date.now();
     existing.count++;
-    existing.monitors = userCfg.monitors;
-    existing.groups = userCfg.groups;
-    userStats.configs.set(encoded, existing);
+    existing.monitors = monitors;
+    existing.groups = groups;
+    existing.isAll = isDefault || (monitors.length === 0 && groups.length === 0);
+    userStats.configs.set(key, existing);
 
     // Limiter la taille
     if (userStats.configs.size > MAX_CONFIGS) {
@@ -805,15 +812,28 @@ function trackUserConfig(encoded) {
       userStats.configs.delete(oldest[0]);
     }
 
-    // Compter instances
-    (userCfg.monitors || []).forEach(id => {
-      userStats.instanceCounts.set(id, (userStats.instanceCounts.get(id) || 0) + 1);
-    });
-
-    // Compter groupes
-    (userCfg.groups || []).forEach(g => {
-      userStats.groupCounts.set(g, (userStats.groupCounts.get(g) || 0) + 1);
-    });
+    // Si "tout installer" : compter tous les monitors et groupes connus
+    if (existing.isAll) {
+      Object.values(kumaMonitors).forEach(m => {
+        if (m.type !== 'group') {
+          userStats.instanceCounts.set(m.id, (userStats.instanceCounts.get(m.id) || 0) + 1);
+        }
+      });
+      // Compter tous les groupes connus
+      Object.values(kumaMonitors).filter(m => m.type === 'group').forEach(m => {
+        const name = m.name.replace(/\n/g,'').trim();
+        userStats.groupCounts.set(name, (userStats.groupCounts.get(name) || 0) + 1);
+      });
+    } else {
+      // Compter les instances sélectionnées
+      monitors.forEach(id => {
+        userStats.instanceCounts.set(id, (userStats.instanceCounts.get(id) || 0) + 1);
+      });
+      // Compter les groupes sélectionnés
+      groups.forEach(g => {
+        userStats.groupCounts.set(g, (userStats.groupCounts.get(g) || 0) + 1);
+      });
+    }
   } catch(e) {}
 }
 
@@ -843,7 +863,7 @@ function getUserStatsData() {
   const recent = configs
     .sort((a,b) => b.lastSeen - a.lastSeen)
     .slice(0, 5)
-    .map(c => ({ lastSeen: c.lastSeen, monitors: c.monitors?.length || 0, groups: c.groups?.length || 0 }));
+    .map(c => ({ lastSeen: c.lastSeen, monitors: c.monitors?.length || 0, groups: c.groups?.length || 0, isAll: c.isAll || false }));
 
   return { total, activeToday, activeWeek, topInstances, topGroups, recent };
 }
