@@ -1033,8 +1033,7 @@ app.post('/api/monitors/:id/hide', authMiddleware, async (req, res) => {
       const monitor = kumaMonitors[id];
       if (monitor) {
         const parentGroup = Object.values(kumaMonitors).find(m => m.type === 'group' && m.id === monitor.parent);
-        const groupName = parentGroup ? parentGroup.name.replace(/
-/g,'').trim() : 'Non classé';
+        const groupName = parentGroup ? parentGroup.name.replace(/\n/g,'').trim() : 'Non classé';
         await addToStatusPage(id, groupName, false, monitor.parent || null);
       }
     }
