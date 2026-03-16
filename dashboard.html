@@ -1521,6 +1521,7 @@
     if (!allData || !currentConfig) return;
     const { groups, heartbeats } = allData;
     const hidden = currentConfig.hiddenMonitors || [];
+    const hiddenGroups = currentConfig.hiddenGroups || [];
     const customNames = currentConfig.customNames || {};
     const customLinks = currentConfig.customLinks || {};
     let html = '';
@@ -1542,9 +1543,11 @@
               onkeydown="if(event.key==='Enter'){this.blur()}else if(event.key==='Escape'){this.value=this.dataset.original;this.blur()}"
               title="Cliquer pour renommer le groupe">
             <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="action-btn ${isGroupHidden?'success':''}" id="gbtn-${safeGid}" data-gname="${escapeHtml(name)}" onclick="toggleHideGroup(this.dataset.gname, ${safeGid}, this, event)" style="font-size:11px;padding:4px 8px">${isGroupHidden?'👁️ Afficher':'🚫 Masquer'}</button>
+            <button class="btn-delete" data-gname="${escapeHtml(name)}" onclick="deleteGroup(${safeGid}, this.dataset.gname, event)" title="Supprimer ce groupe" style="font-size:13px;padding:5px 8px">🗑️</button>
           </div>
-          <button class="btn-delete" onclick="deleteGroup(${safeGid}, '${escapeHtml(name).replace(/'/g,"\\'")}', event)" title="Supprimer ce groupe" style="font-size:13px;padding:5px 8px">🗑️</button>
-        </div>`;
+        </div>`
 
       group.monitorList.forEach(m => {
         const sid = Number(m.id);
@@ -1988,6 +1991,38 @@
         input.value = oldName;
       }
     } catch(e) { toast('❌ ' + e.message); input.value = oldName; }
+  }
+
+  async function toggleHideGroup(name, id, btn, e) {
+    e?.stopPropagation();
+    const cfg = { ...currentConfig };
+    if (!cfg.hiddenGroups) cfg.hiddenGroups = [];
+    const hiding = !cfg.hiddenGroups.includes(name);
+
+    // Mettre à jour UI immédiatement
+    if (hiding) {
+      cfg.hiddenGroups.push(name);
+      btn.textContent = '👁️ Afficher'; btn.classList.add('success');
+      document.getElementById(`gcard-${id}`).style.opacity = '0.4';
+    } else {
+      cfg.hiddenGroups = cfg.hiddenGroups.filter(g => g !== name);
+      btn.textContent = '🚫 Masquer'; btn.classList.remove('success');
+      document.getElementById(`gcard-${id}`).style.opacity = '1';
+    }
+
+    try {
+      const res = await fetch('/api/groups/hide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ groupName: name, hide: hiding })
+      });
+      if (res.ok) {
+        currentConfig = cfg;
+        toast(hiding ? '🚫 Groupe masqué sur le site et Kuma' : '👁️ Groupe affiché sur le site et Kuma');
+      } else {
+        toast('❌ Erreur lors du masquage');
+      }
+    } catch(e) { toast('❌ ' + e.message); }
   }
 
   async function deleteGroup(id, name, e) {
