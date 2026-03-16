@@ -1297,7 +1297,12 @@
 
 
   // ── STATS UTILISATEURS ────────────────────────────────────────────────────
+  let userStatsInterval = null;
+
   async function loadUserStats() {
+    // Auto-refresh toutes les 15s
+    if (userStatsInterval) clearInterval(userStatsInterval);
+    userStatsInterval = setInterval(loadUserStats, 15000);
     try {
       const res = await fetch('/api/user-stats', { headers: { 'x-admin-token': token } });
       if (!res.ok) return;
@@ -2222,6 +2227,8 @@
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.getElementById(`page-${name}`).classList.add('active');
     btn.classList.add('active');
+    // Stopper l'auto-refresh users si on quitte la page
+    if (name !== 'users' && userStatsInterval) { clearInterval(userStatsInterval); userStatsInterval = null; }
   }
 
   function toast(msg) {

@@ -761,6 +761,7 @@ app.get('/:userConfig/catalog/:type/:id.json', async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', '*');
   const uc = req.params.userConfig;
   if (!/^[A-Za-z0-9_-]{1,200}$/.test(uc)) return res.status(400).json({ metas: [] });
+  trackUserConfig(uc);
   try {
     const userCfg = decodeUserConfig(req.params.userConfig);
     const { groups, heartbeats } = await getUptimeData();
