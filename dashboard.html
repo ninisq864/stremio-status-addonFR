@@ -1300,9 +1300,6 @@
   let userStatsInterval = null;
 
   async function loadUserStats() {
-    // Auto-refresh toutes les 15s
-    if (userStatsInterval) clearInterval(userStatsInterval);
-    userStatsInterval = setInterval(loadUserStats, 15000);
     try {
       const res = await fetch('/api/user-stats', { headers: { 'x-admin-token': token } });
       if (!res.ok) return;
@@ -1644,11 +1641,33 @@
     const cfg = { ...currentConfig };
     if (!cfg.hiddenMonitors) cfg.hiddenMonitors = [];
     const idx = cfg.hiddenMonitors.indexOf(id);
-    if (idx === -1) { cfg.hiddenMonitors.push(id); btn.textContent = '👁️ Afficher'; btn.classList.add('success'); document.getElementById(`row-${id}`).style.opacity = '0.4'; }
-    else { cfg.hiddenMonitors.splice(idx,1); btn.textContent = '🚫 Masquer'; btn.classList.remove('success'); document.getElementById(`row-${id}`).style.opacity = '1'; }
-    await saveConfig(cfg);
-    currentConfig = cfg;
-    toast(idx === -1 ? '🚫 Instance masquée' : '👁️ Instance affichée');
+    const hiding = idx === -1;
+
+    // Mettre à jour UI immédiatement
+    if (hiding) {
+      cfg.hiddenMonitors.push(id);
+      btn.textContent = '👁️ Afficher'; btn.classList.add('success');
+      document.getElementById(`row-${id}`).style.opacity = '0.4';
+    } else {
+      cfg.hiddenMonitors.splice(idx, 1);
+      btn.textContent = '🚫 Masquer'; btn.classList.remove('success');
+      document.getElementById(`row-${id}`).style.opacity = '1';
+    }
+
+    try {
+      // Nouvel endpoint qui sync aussi avec Uptime Kuma status page
+      const res = await fetch(`/api/monitors/${id}/hide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ hide: hiding })
+      });
+      if (res.ok) {
+        currentConfig = cfg;
+        toast(hiding ? '🚫 Instance masquée sur le site et Kuma' : '👁️ Instance affichée sur le site et Kuma');
+      } else {
+        toast('❌ Erreur lors du masquage');
+      }
+    } catch(e) { toast('❌ ' + e.message); }
   }
 
   // ── LOGOS ─────────────────────────────────────────────────────────────────
@@ -2229,8 +2248,13 @@
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.getElementById(`page-${name}`).classList.add('active');
     btn.classList.add('active');
-    // Stopper l'auto-refresh users si on quitte la page
-    if (name !== 'users' && userStatsInterval) { clearInterval(userStatsInterval); userStatsInterval = null; }
+    // Gérer l'auto-refresh users
+    if (name === 'users') {
+      if (userStatsInterval) clearInterval(userStatsInterval);
+      userStatsInterval = setInterval(loadUserStats, 5000);
+    } else {
+      if (userStatsInterval) { clearInterval(userStatsInterval); userStatsInterval = null; }
+    }
   }
 
   function toast(msg) {

@@ -944,7 +944,7 @@ app.get('/api/data', async (req, res) => {
 // Route config publique (logos uniquement, sans données sensibles)
 app.get('/api/config/public', (req, res) => {
   const cfg = loadConfig();
-  res.json({ groupPosters: cfg.groupPosters, defaultPoster: cfg.defaultPoster });
+  res.json({ groupPosters: cfg.groupPosters, defaultPoster: cfg.defaultPoster, hiddenMonitors: cfg.hiddenMonitors || [], hideOffline: cfg.hideOffline || false });
 });
 
 app.get('/api/config', authMiddleware, (req, res) => res.json(loadConfig()));
@@ -1014,6 +1014,35 @@ app.post('/api/change-password', authMiddleware, async (req, res) => {
 });
 
 // ── API UPTIME KUMA ────────────────────────────────────────────────────────────
+// Masquer/afficher un monitor (sync avec status page Kuma)
+app.post('/api/monitors/:id/hide', authMiddleware, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID invalide' });
+    const hide = req.body.hide === true;
+    const cfg = { ...loadConfig() };
+    if (!cfg.hiddenMonitors) cfg.hiddenMonitors = [];
+
+    if (hide) {
+      if (!cfg.hiddenMonitors.includes(id)) cfg.hiddenMonitors.push(id);
+      // Retirer de la status page Kuma
+      await removeFromStatusPage(id, null);
+    } else {
+      cfg.hiddenMonitors = cfg.hiddenMonitors.filter(i => i !== id);
+      // Remettre dans la status page Kuma
+      const monitor = kumaMonitors[id];
+      if (monitor) {
+        const parentGroup = Object.values(kumaMonitors).find(m => m.type === 'group' && m.id === monitor.parent);
+        const groupName = parentGroup ? parentGroup.name.replace(/
+/g,'').trim() : 'Non classé';
+        await addToStatusPage(id, groupName, false, monitor.parent || null);
+      }
+    }
+    await saveConfig(cfg);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/kuma/status', authMiddleware, (req, res) => {
   res.json({ connected: kumaConnected, ready: kumaReady, monitorsCount: Object.keys(kumaMonitors).length });
 });

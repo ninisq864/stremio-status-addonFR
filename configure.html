@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WAddons Status — Installation</title>
+  <title>StremioFR — Installation</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -350,7 +350,7 @@
 
   <div class="hero">
     <div class="hero-badge">Statut en temps réel</div>
-    <h1 class="hero-title">WADDONS<span>STATUS</span></h1>
+    <h1 class="hero-title">STATUT<span>DES ADDONS</span></h1>
     <p class="hero-sub">Sélectionne tes instances préférées et installe l'addon directement dans Stremio.</p>
     <div class="stats-bar">
       <div class="stat-item">
@@ -388,7 +388,7 @@
 
   <div class="install-bar" id="install-bar">
     <div class="install-info">
-      <div><strong id="count">0</strong> <span id="count-label">instance sélectionnée</span></div>
+      <div><strong id="count">0</strong> instance(s) sélectionnée(s)</div>
       <div class="install-summary" id="install-summary"></div>
     </div>
     <div class="install-btns">
@@ -454,13 +454,15 @@
           ? cfgData.groupPosters
           : FALLBACK_POSTERS;
         if (cfgData?.defaultPoster) defaultPoster = cfgData.defaultPoster;
-        render(data.groups || [], data.heartbeats || {});
+        const hiddenMonitors = cfgData?.hiddenMonitors || [];
+        const hideOffline = cfgData?.hideOffline || false;
+        render(data.groups || [], data.heartbeats || {}, hiddenMonitors, hideOffline);
       } catch(e) {
         document.getElementById('content').innerHTML = '<div class="loading">❌ Impossible de charger les données</div>';
       }
     }
 
-    function render(groups, heartbeats) {
+    function render(groups, heartbeats, hiddenMonitors = [], hideOffline = false) {
       allMonitors = [];
       let totalUp = 0, totalDown = 0;
       let html = '';
@@ -495,6 +497,10 @@
               const isUp = last && last.status === 1;
               const safeId = Number(monitor.id);
               if (!Number.isInteger(safeId)) return '';
+              // Filtrer les monitors masqués
+              if (hiddenMonitors.includes(safeId)) return '';
+              // Filtrer les monitors hors ligne si hideOffline activé
+              if (hideOffline && !isUp) return '';
               allMonitors.push({ id: safeId, name: monitor.name, group: name });
               return `
               <div class="instance" id="inst-${safeId}" onclick="toggle(${safeId})">
@@ -532,7 +538,6 @@
     function updateBar() {
       const count = selected.size;
       document.getElementById('count').textContent = count;
-      document.getElementById('count-label').textContent = count > 1 ? 'instances sélectionnées' : 'instance sélectionnée';
       const bar = document.getElementById('install-bar');
       const summary = document.getElementById('install-summary');
       const btn = document.getElementById('btn-install');
