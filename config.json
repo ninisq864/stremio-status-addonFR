@@ -7,7 +7,8 @@
     "Wastream": "https://wastream.striho.top/static/wastream-logo.png"
   },
   "hiddenMonitors": [
-    16
+    16,
+    55
   ],
   "customNames": {
     "1": "AIOStreams",
