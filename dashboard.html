@@ -442,6 +442,16 @@
       flex-shrink: 0;
     }
     .logo-name { font-size: 13px; font-weight: 700; color: var(--text); min-width: 120px; }
+    .logo-name-input {
+      font-size: 13px; font-weight: 700; color: var(--text);
+      min-width: 120px; width: 140px;
+      background: none; border: 1px solid transparent;
+      border-radius: 6px; padding: 4px 8px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: text; transition: all 0.15s;
+    }
+    .logo-name-input:hover { border-color: var(--border); background: var(--surface2); }
+    .logo-name-input:focus { outline: none; border-color: var(--accent); background: var(--input-bg); }
     .logo-url-input {
       flex: 1;
       background: var(--input-bg);
@@ -1528,25 +1538,35 @@
     const { groupPosters } = currentConfig;
     let html = '';
     Object.entries(groupPosters).forEach(([group, url]) => {
-      html += `<div class="logo-row">
-        <img class="logo-preview" src="${url}" id="preview-${group}" onerror="this.src=''">
-        <div class="logo-name">${group}</div>
-        <input class="logo-url-input" type="text" value="${url}" id="logo-${group}" placeholder="https://...">
-        <button class="action-btn" onclick="saveLogo('${group}')">💾 Sauv.</button>
-        <button class="action-btn danger" onclick="deleteLogo('${group}')">🗑️</button>
+      const safeGroup = escapeHtml(group);
+      html += `<div class="logo-row" id="logorow-${safeGroup}">
+        <img class="logo-preview" src="${escapeHtml(url)}" id="preview-${safeGroup}" onerror="this.src=''">
+        <input class="logo-name-input" value="${safeGroup}" id="logoname-${safeGroup}" data-original="${safeGroup}"
+          title="Cliquer pour renommer"
+          onkeydown="if(event.key==='Enter'){this.blur()}else if(event.key==='Escape'){this.value=this.dataset.original;this.blur()}">
+        <input class="logo-url-input" type="text" value="${escapeHtml(url)}" id="logo-${safeGroup}" placeholder="https://...">
+        <button class="action-btn" onclick="saveLogo('${safeGroup}')">💾 Sauv.</button>
+        <button class="action-btn danger" onclick="deleteLogo('${safeGroup}')">🗑️</button>
       </div>`;
     });
     document.getElementById('logos-list').innerHTML = html;
   }
 
-  async function saveLogo(group) {
-    const url = document.getElementById(`logo-${group}`).value.trim();
+  async function saveLogo(originalGroup) {
+    const nameInput = document.getElementById(`logoname-${originalGroup}`);
+    const newName = nameInput ? nameInput.value.trim() : originalGroup;
+    const url = document.getElementById(`logo-${originalGroup}`).value.trim();
+    if (!newName) { toast('❌ Nom requis'); return; }
     const cfg = { ...currentConfig };
-    cfg.groupPosters[group] = url;
+    // Si renommage : supprimer l'ancienne clé, créer la nouvelle
+    if (newName !== originalGroup) {
+      delete cfg.groupPosters[originalGroup];
+    }
+    cfg.groupPosters[newName] = url;
     await saveConfig(cfg);
     currentConfig = cfg;
-    document.getElementById(`preview-${group}`).src = url;
-    toast(`✅ Logo "${group}" mis à jour`);
+    renderLogos();
+    toast(`✅ Logo "${newName}" mis à jour`);
   }
 
   async function deleteLogo(group) {
