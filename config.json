@@ -6,7 +6,9 @@
     "COMET": "https://i.imgur.com/jmVoVMu.jpeg",
     "Wastream": "https://wastream.striho.top/static/wastream-logo.png"
   },
-  "hiddenMonitors": [],
+  "hiddenMonitors": [
+    16
+  ],
   "customNames": {
     "1": "AIOStreams",
     "2": "fortheweak (Stable)",
