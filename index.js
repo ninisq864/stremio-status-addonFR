@@ -740,6 +740,7 @@ app.get('/:userConfig/manifest.json', (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', '*');
   const uc = req.params.userConfig;
   if (!/^[A-Za-z0-9_-]{1,200}$/.test(uc)) return res.status(400).json({ error: 'Config invalide' });
+  trackUserConfig(uc);
   const personalManifest = {
     id: `fr.waddons.status.${uc.slice(0, 12)}`,
     version: manifest.version,
@@ -773,6 +774,78 @@ app.get('/:userConfig/catalog/:type/:id.json', async (req, res) => {
     res.json({ metas: [] });
   }
 });
+
+
+// ── STATS UTILISATEURS ────────────────────────────────────────────────────────
+const userStats = {
+  configs: new Map(),      // userConfig -> { monitors, groups, lastSeen, count }
+  instanceCounts: new Map(), // monitorId -> count
+  groupCounts: new Map(),    // groupName -> count
+};
+const MAX_CONFIGS = 500;
+
+function trackUserConfig(encoded) {
+  if (!encoded || encoded === 'default') return;
+  try {
+    const userCfg = decodeUserConfig(encoded);
+    if (!userCfg) return;
+
+    // Mettre à jour la config
+    const existing = userStats.configs.get(encoded) || { monitors: userCfg.monitors, groups: userCfg.groups, firstSeen: Date.now(), lastSeen: 0, count: 0 };
+    existing.lastSeen = Date.now();
+    existing.count++;
+    existing.monitors = userCfg.monitors;
+    existing.groups = userCfg.groups;
+    userStats.configs.set(encoded, existing);
+
+    // Limiter la taille
+    if (userStats.configs.size > MAX_CONFIGS) {
+      const oldest = [...userStats.configs.entries()].sort((a,b) => a[1].lastSeen - b[1].lastSeen)[0];
+      userStats.configs.delete(oldest[0]);
+    }
+
+    // Compter instances
+    (userCfg.monitors || []).forEach(id => {
+      userStats.instanceCounts.set(id, (userStats.instanceCounts.get(id) || 0) + 1);
+    });
+
+    // Compter groupes
+    (userCfg.groups || []).forEach(g => {
+      userStats.groupCounts.set(g, (userStats.groupCounts.get(g) || 0) + 1);
+    });
+  } catch(e) {}
+}
+
+function getUserStatsData() {
+  const configs = [...userStats.configs.values()];
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+
+  // Utilisateurs uniques (configs distinctes)
+  const total = userStats.configs.size;
+  const activeToday = configs.filter(c => now - c.lastSeen < day).length;
+  const activeWeek = configs.filter(c => now - c.lastSeen < 7 * day).length;
+
+  // Top instances
+  const topInstances = [...userStats.instanceCounts.entries()]
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id, count]) => ({ id, count }));
+
+  // Top groupes
+  const topGroups = [...userStats.groupCounts.entries()]
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, count]) => ({ name, count }));
+
+  // Dernières activités
+  const recent = configs
+    .sort((a,b) => b.lastSeen - a.lastSeen)
+    .slice(0, 5)
+    .map(c => ({ lastSeen: c.lastSeen, monitors: c.monitors?.length || 0, groups: c.groups?.length || 0 }));
+
+  return { total, activeToday, activeWeek, topInstances, topGroups, recent };
+}
 
 // ── LOGS DE CONNEXION ─────────────────────────────────────────────────────────
 const connectionLogs = [];
@@ -819,6 +892,17 @@ app.post('/api/login', cookieAuthMiddleware, loginRateLimit, async (req, res) =>
     const remaining = MAX_ATTEMPTS - (attempts?.count || 0);
     res.status(401).json({ error: `Mot de passe incorrect. ${remaining} tentative(s) restante(s).` });
   }
+});
+
+// Route stats utilisateurs
+app.get('/api/user-stats', authMiddleware, (req, res) => {
+  const stats = getUserStatsData();
+  // Enrichir les topInstances avec les noms depuis kumaMonitors
+  stats.topInstances = stats.topInstances.map(item => ({
+    ...item,
+    name: kumaMonitors[item.id]?.name || `Monitor #${item.id}`
+  }));
+  res.json(stats);
 });
 
 // Route pour voir les logs de connexion depuis le dashboard
