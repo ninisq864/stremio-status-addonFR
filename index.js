@@ -1189,6 +1189,12 @@ app.post('/webhook/refresh', (req, res) => {
   res.json({ ok: true });
 });
 
+// Intercepter le manifest de base pour tracker les installations "tout"
+app.get('/manifest.json', (req, res, next) => {
+  trackUserConfig('default');
+  next(); // laisser le SDK répondre normalement
+});
+
 app.use(router);
 
 const PORT = process.env.PORT || 7000;
