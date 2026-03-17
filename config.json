@@ -38,7 +38,8 @@
     "24": "You",
     "49": "test finla",
     "50": "insta test",
-    "51": "test"
+    "51": "test",
+    "55": "Comet FR"
   },
   "customLinks": {
     "1": "https://",
@@ -66,7 +67,8 @@
     "23": "https://wastream.striho.top/configure",
     "24": "https://www.youtube.com/",
     "49": "https://www.youtube.com/",
-    "50": "https://www.instagram.com/"
+    "50": "https://www.instagram.com/",
+    "55": "https://comet.stremiofr.com/"
   },
   "defaultPoster": "https://raw.githubusercontent.com/ninisq864/stremio-status-addonFR/refs/heads/main/logo.svg",
   "cacheTTL": 25,
