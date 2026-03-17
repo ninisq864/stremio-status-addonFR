@@ -223,14 +223,24 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     console.log('📄 Groupes dans status page:', publicGroupList.map(g => `"${g.name.replace(/\n/g,'').trim()}":${g.monitorList.length}`));
 
     if (isGroup) {
-      // Reconstruire le groupe avec tous ses monitors depuis kumaMonitors
+      // Vérifier si le groupe existe déjà dans la status page (cas : nouveau groupe venant d'être créé dans Kuma)
       const cleanGroupName = groupName.replace(/\n/g,'').trim().toLowerCase();
-      const kumaGroup = Object.values(kumaMonitors).find(
+      const alreadyInPage = publicGroupList.some(
+        g => g.name.replace(/\n/g,'').trim().toLowerCase() === cleanGroupName
+      );
+      if (alreadyInPage) {
+        // Groupe déjà présent → Kuma l'a ajouté automatiquement, rien à faire
+        console.log(`📄 Groupe "${groupName}" déjà dans la status page, skip`);
+        cache = { data: null, ts: 0 };
+        return true;
+      }
+      // Groupe absent = réaffichage après masquage → reconstruire avec ses monitors
+      const kumaGroupEntry = Object.values(kumaMonitors).find(
         m => m.type === 'group' && m.name.replace(/\n/g,'').trim().toLowerCase() === cleanGroupName
       );
-      const groupMonitors = kumaGroup
+      const groupMonitors = kumaGroupEntry
         ? Object.values(kumaMonitors)
-            .filter(m => m.parent === kumaGroup.id && m.type !== 'group')
+            .filter(m => m.parent === kumaGroupEntry.id && m.type !== 'group')
             .map(m => ({ id: m.id, sendUrl: false }))
         : [];
       console.log(`📄 Réaffichage groupe "${groupName}" avec ${groupMonitors.length} monitors:`, groupMonitors.map(m => m.id));
@@ -612,12 +622,12 @@ function buildCatalog(groups, heartbeats, cfg, userCfg) {
     const posterKey = Object.keys(cfg.groupPosters).find(k => cleanName.toLowerCase().includes(k.toLowerCase()));
     const groupPoster = cfg.groupPosters[posterKey] || cfg.defaultPoster;
     for (const monitor of group.monitorList) {
-      if (cfg.hiddenMonitors.includes(monitor.id)) continue;
+      if (cfg.hiddenMonitors.includes(Number(monitor.id))) continue;
       // Filtrage par monitor si config utilisateur
       if (userCfg && userCfg.monitors && userCfg.monitors.length > 0) {
         if (!userCfg.monitors.includes(monitor.id)) continue;
       }
-      const hbs = heartbeats[monitor.id] || [];
+      const hbs = heartbeats[monitor.id] || heartbeats[String(monitor.id)] || [];
       const last = hbs[hbs.length - 1];
       const isUp = last ? last.status === 1 : false;
       const uptime = hbs.length ? Math.round(hbs.filter(h => h.status === 1).length / hbs.length * 10000) / 100 : 0;
