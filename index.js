@@ -223,24 +223,14 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     console.log('📄 Groupes dans status page:', publicGroupList.map(g => `"${g.name.replace(/\n/g,'').trim()}":${g.monitorList.length}`));
 
     if (isGroup) {
-      // Vérifier si le groupe existe déjà dans la status page (cas : nouveau groupe venant d'être créé dans Kuma)
+      // Reconstruire le groupe avec tous ses monitors depuis kumaMonitors
       const cleanGroupName = groupName.replace(/\n/g,'').trim().toLowerCase();
-      const alreadyInPage = publicGroupList.some(
-        g => g.name.replace(/\n/g,'').trim().toLowerCase() === cleanGroupName
-      );
-      if (alreadyInPage) {
-        // Groupe déjà présent → Kuma l'a ajouté automatiquement, rien à faire
-        console.log(`📄 Groupe "${groupName}" déjà dans la status page, skip`);
-        cache = { data: null, ts: 0 };
-        return true;
-      }
-      // Groupe absent = réaffichage après masquage → reconstruire avec ses monitors
-      const kumaGroupEntry = Object.values(kumaMonitors).find(
+      const kumaGroup = Object.values(kumaMonitors).find(
         m => m.type === 'group' && m.name.replace(/\n/g,'').trim().toLowerCase() === cleanGroupName
       );
-      const groupMonitors = kumaGroupEntry
+      const groupMonitors = kumaGroup
         ? Object.values(kumaMonitors)
-            .filter(m => m.parent === kumaGroupEntry.id && m.type !== 'group')
+            .filter(m => m.parent === kumaGroup.id && m.type !== 'group')
             .map(m => ({ id: m.id, sendUrl: false }))
         : [];
       console.log(`📄 Réaffichage groupe "${groupName}" avec ${groupMonitors.length} monitors:`, groupMonitors.map(m => m.id));
@@ -1063,6 +1053,110 @@ app.post('/api/groups/hide', authMiddleware, async (req, res) => {
 });
 
 // Masquer/afficher un monitor (sync avec status page Kuma)
+
+// Reconstruit toute la status page depuis les monitors Kuma (reset complet)
+app.post('/api/kuma/rebuild-status-page', authMiddleware, async (req, res) => {
+  try {
+    if (!kumaReady) return res.status(503).json({ error: 'Non connecté à Uptime Kuma' });
+    const cfg = loadConfig();
+    const hiddenGroups = cfg.hiddenGroups || [];
+    const hiddenMonitors = cfg.hiddenMonitors || [];
+
+    // Récupérer la structure actuelle pour garder pageConfig
+    const pageData = await fetchStatusPageStructure();
+    if (!pageData) return res.status(500).json({ error: 'Status page inaccessible' });
+
+    // Construire la liste des groupes depuis kumaMonitors
+    const groups = Object.values(kumaMonitors).filter(m => m.type === 'group');
+    const newGroupList = [];
+
+    for (const group of groups) {
+      const cleanName = group.name.replace(/\n/g,'').trim();
+      // Ignorer les groupes masqués
+      if (hiddenGroups.includes(cleanName)) continue;
+      // Récupérer les monitors enfants non masqués
+      const monitors = Object.values(kumaMonitors)
+        .filter(m => m.parent === group.id && m.type !== 'group' && !hiddenMonitors.includes(m.id))
+        .map(m => ({ id: m.id, sendUrl: false }));
+      newGroupList.push({ name: cleanName, weight: newGroupList.length, monitorList: monitors });
+    }
+
+    const pageConfig = {
+      id: pageData.id ?? null, slug: STATUS_SLUG,
+      title: pageData.title ?? 'StremioFR Addons', description: pageData.description ?? '',
+      icon: pageData.icon ?? '/icon.svg', theme: pageData.theme ?? 'auto',
+      published: pageData.published ?? true, showTags: pageData.showTags ?? false,
+      domainNameList: pageData.domainNameList ?? [], customCSS: pageData.customCSS ?? '',
+      footerText: pageData.footerText ?? '', showPoweredBy: pageData.showPoweredBy ?? true,
+      autoRefreshInterval: pageData.autoRefreshInterval ?? 300,
+      analyticsType: null, analyticsId: null, analyticsScriptUrl: null, rssTitle: null,
+      showCertificateExpiry: false, showOnlyLastHeartbeat: false,
+    };
+
+    await new Promise((resolve, reject) => {
+      if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
+      const timeout = setTimeout(() => reject(new Error('timeout')), 10000);
+      kumaSocket.emit('saveStatusPage', STATUS_SLUG, pageConfig, pageData.icon ?? '', newGroupList, (r) => {
+        clearTimeout(timeout);
+        if (r && r.ok === false) reject(new Error(r.msg));
+        else resolve(r);
+      });
+    });
+
+    cache = { data: null, ts: 0 };
+    console.log('✅ Status page reconstruite:', newGroupList.map(g => g.name + ':' + g.monitorList.length));
+    res.json({ ok: true, groups: newGroupList.map(g => ({ name: g.name, monitors: g.monitorList.length })) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Nettoyage des groupes vides dans la status page Kuma
+app.post('/api/kuma/cleanup-status-page', authMiddleware, async (req, res) => {
+  try {
+    const pageData = await fetchStatusPageStructure();
+    if (!pageData) return res.status(500).json({ error: 'Status page inaccessible' });
+    
+    const before = (pageData.publicGroupList || []).map(g => g.name.replace(/\n/g,'').trim());
+    
+    // Garder seulement les groupes qui ont au moins 1 monitor
+    const cleaned = (pageData.publicGroupList || []).filter(g => g.monitorList && g.monitorList.length > 0);
+    
+    const removed = before.filter(n => !cleaned.map(g => g.name.replace(/\n/g,'').trim()).includes(n));
+    console.log('🧹 Groupes vides supprimés:', removed);
+    
+    const pageConfig = {
+      id: pageData.id ?? null, slug: STATUS_SLUG,
+      title: pageData.title ?? 'StremioFR Addons', description: pageData.description ?? '',
+      icon: pageData.icon ?? '/icon.svg', theme: pageData.theme ?? 'auto',
+      published: pageData.published ?? true, showTags: pageData.showTags ?? false,
+      domainNameList: pageData.domainNameList ?? [], customCSS: pageData.customCSS ?? '',
+      footerText: pageData.footerText ?? '', showPoweredBy: pageData.showPoweredBy ?? true,
+      autoRefreshInterval: pageData.autoRefreshInterval ?? 300,
+      analyticsType: null, analyticsId: null, analyticsScriptUrl: null, rssTitle: null,
+      showCertificateExpiry: false, showOnlyLastHeartbeat: false,
+    };
+    const normalizedGroupList = cleaned.map((g, i) => ({
+      id: g.id ?? undefined, name: g.name,
+      weight: typeof g.weight === 'number' ? g.weight : i,
+      monitorList: (g.monitorList || []).map(m => ({
+        id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
+        sendUrl: m.sendUrl ?? false,
+      })),
+    }));
+    
+    await new Promise((resolve, reject) => {
+      if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
+      const timeout = setTimeout(() => reject(new Error('timeout')), 10000);
+      kumaSocket.emit('saveStatusPage', STATUS_SLUG, pageConfig, pageData.icon ?? '', normalizedGroupList, (r) => {
+        clearTimeout(timeout);
+        if (r && r.ok === false) reject(new Error(r.msg));
+        else resolve(r);
+      });
+    });
+    cache = { data: null, ts: 0 };
+    res.json({ ok: true, removed, kept: cleaned.map(g => g.name.replace(/\n/g,'').trim()) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/monitors/:id/hide', authMiddleware, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);

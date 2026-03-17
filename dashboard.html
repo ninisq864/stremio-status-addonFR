@@ -805,6 +805,7 @@
         <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
           <button class="btn-add" onclick="saveAllInstances()" style="background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.3)" id="btn-save-all">💾 Tout sauvegarder</button>
           <button class="btn-add" onclick="syncAllFromKuma()" style="background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.3)">🔄 Synchroniser tout depuis Kuma</button>
+          <button class="btn-add" onclick="cleanupStatusPage()" style="background:rgba(239,68,68,0.1);color:#f87171;border-color:rgba(239,68,68,0.3)" title="Supprimer les groupes vides de la status page Kuma">🧹 Nettoyer groupes vides</button>
         </div>
         <div class="card" style="margin-bottom:12px">
           <div class="card-head">
@@ -2126,9 +2127,28 @@
     } catch(e) { toast('❌ ' + e.message); }
   }
 
+  async function cleanupStatusPage() {
+    if (!confirm('Supprimer tous les groupes vides de la status page Kuma ?')) return;
+    try {
+      const res = await fetch('/api/kuma/cleanup-status-page', {
+        method: 'POST',
+        headers: { 'x-admin-token': token }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast(`🧹 ${data.removed.length} groupe(s) supprimé(s): ${data.removed.join(', ') || 'aucun'}`);
+        await loadInstancesWithKuma();
+      } else {
+        toast('❌ Erreur: ' + (data.error || 'inconnue'));
+      }
+    } catch(e) { toast('❌ ' + e.message); }
+  }
+
   async function syncAllFromKuma() {
     try {
       toast('🔄 Synchronisation en cours...');
+
+      // 1. Syncer les noms/URLs dans la config
       const res = await fetch('/api/kuma/monitors', { headers: { 'x-admin-token': token } });
       const { monitors } = await res.json();
       if (!monitors || !monitors.length) { toast('❌ Aucun monitor Kuma'); return; }
@@ -2136,22 +2156,24 @@
       const cfg = { ...currentConfig };
       if (!cfg.customLinks) cfg.customLinks = {};
       if (!cfg.customNames) cfg.customNames = {};
-
       monitors.forEach(m => {
-        // Sauvegarder l'URL si pas déjà un lien custom
-        if (m.url && !cfg.customLinks[m.id]) {
-          cfg.customLinks[m.id] = m.url;
-        }
-        // Sauvegarder le nom si pas déjà un nom custom
-        if (m.name && !cfg.customNames[m.id]) {
-          cfg.customNames[m.id] = m.name;
-        }
+        if (m.url && !cfg.customLinks[m.id]) cfg.customLinks[m.id] = m.url;
+        if (m.name && !cfg.customNames[m.id]) cfg.customNames[m.id] = m.name;
       });
-
       await saveConfig(cfg);
       currentConfig = cfg;
-      toast(`✅ ${monitors.length} instances synchronisées dans la config !`);
-      loadInstancesWithKuma();
+
+      // 2. Reconstruire la status page Kuma depuis zéro
+      const rebuildRes = await fetch('/api/kuma/rebuild-status-page', {
+        method: 'POST', headers: { 'x-admin-token': token }
+      });
+      const rebuildData = await rebuildRes.json();
+      if (!rebuildRes.ok) {
+        toast('⚠️ Config sync OK mais erreur rebuild: ' + (rebuildData.error || ''));
+      } else {
+        toast(`✅ Status page reconstruite: ${rebuildData.groups?.length || 0} groupes`);
+      }
+      await loadInstancesWithKuma();
     } catch(e) {
       toast('❌ Erreur synchronisation: ' + e.message);
     }
