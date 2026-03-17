@@ -52,6 +52,7 @@ const DEFAULT_CONFIG = {
     'WAStream':     'https://wastream.striho.top/static/wastream-logo.png',
   },
   hiddenMonitors: [],
+  hiddenGroups: [],
   customNames: {},
   customLinks: {},
   defaultPoster: 'https://i.imgur.com/8yPVxJJ.png',
@@ -591,6 +592,8 @@ function buildCatalog(groups, heartbeats, cfg, userCfg) {
   const metas = [];
   for (const group of groups) {
     const cleanName = group.name.replace(/\n/g, '').trim();
+    // Filtrer les groupes masqués
+    if ((cfg.hiddenGroups || []).includes(cleanName)) continue;
     // Filtrage par groupe si config utilisateur
     if (userCfg && userCfg.groups && userCfg.groups.length > 0) {
       if (!userCfg.groups.includes(cleanName)) continue;
@@ -944,13 +947,13 @@ app.get('/api/data', async (req, res) => {
 // Route config publique (logos uniquement, sans données sensibles)
 app.get('/api/config/public', (req, res) => {
   const cfg = loadConfig();
-  res.json({ groupPosters: cfg.groupPosters, defaultPoster: cfg.defaultPoster, hiddenMonitors: cfg.hiddenMonitors || [], hideOffline: cfg.hideOffline || false });
+  res.json({ groupPosters: cfg.groupPosters, defaultPoster: cfg.defaultPoster, hiddenMonitors: cfg.hiddenMonitors || [], hiddenGroups: cfg.hiddenGroups || [], hideOffline: cfg.hideOffline || false });
 });
 
 app.get('/api/config', authMiddleware, (req, res) => res.json(loadConfig()));
 app.post('/api/config', authMiddleware, async (req, res) => {
   const ALLOWED_FIELDS = [
-    'groupPosters', 'hiddenMonitors', 'customNames', 'customLinks',
+    'groupPosters', 'hiddenMonitors', 'hiddenGroups', 'customNames', 'customLinks',
     'defaultPoster', 'cacheTTL', 'autoIncrementVersion', 'manifestVersion',
     'hideOffline'
   ];
@@ -1014,6 +1017,30 @@ app.post('/api/change-password', authMiddleware, async (req, res) => {
 });
 
 // ── API UPTIME KUMA ────────────────────────────────────────────────────────────
+// Masquer/afficher un groupe entier (sync avec status page Kuma)
+app.post('/api/groups/hide', authMiddleware, async (req, res) => {
+  try {
+    const { groupName, hide } = req.body;
+    if (!groupName || typeof groupName !== 'string') return res.status(400).json({ error: 'groupName requis' });
+    const cfg = { ...loadConfig() };
+    if (!cfg.hiddenGroups) cfg.hiddenGroups = [];
+    const cleanName = groupName.replace(/\n/g,'').trim();
+
+    if (hide) {
+      if (!cfg.hiddenGroups.includes(cleanName)) cfg.hiddenGroups.push(cleanName);
+      // Retirer le groupe de la status page Kuma (par nom)
+      await removeFromStatusPage(null, cleanName);
+    } else {
+      cfg.hiddenGroups = cfg.hiddenGroups.filter(g => g !== cleanName);
+      // Remettre le groupe dans la status page — trouver l'ID du groupe Kuma
+      const kumaGroup = Object.values(kumaMonitors).find(m => m.type === 'group' && m.name.replace(/\n/g,'').trim() === cleanName);
+      if (kumaGroup) await addToStatusPage(kumaGroup.id, cleanName, true);
+    }
+    await saveConfig(cfg);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Masquer/afficher un monitor (sync avec status page Kuma)
 app.post('/api/monitors/:id/hide', authMiddleware, async (req, res) => {
   try {
