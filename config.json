@@ -10,7 +10,9 @@
     16,
     55
   ],
-  "hiddenGroups": [],
+  "hiddenGroups": [
+    "AIOStreams"
+  ],
   "customNames": {
     "1": "AIOStreams",
     "2": "fortheweak (Stable)",
