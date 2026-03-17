@@ -1266,8 +1266,11 @@
       allData = await res.json();
       renderStats();
       updateCacheAge();
-      // Toujours charger kumaData pour afficher les URLs dans le tableau instances
-      await loadInstancesWithKuma();
+      // Ne charger les instances que si currentConfig est déjà prêt
+      // Sinon c'est loadConfig() qui déclenchera le rendu une fois qu'il aura fini
+      if (currentConfig) {
+        await loadInstancesWithKuma();
+      }
     } catch(e) { /* erreur réseau, on ne crash pas */ }
   }
 
@@ -1282,6 +1285,11 @@
       currentConfig = await res.json();
       renderLogos();
       if (currentConfig.cacheTTL) document.getElementById('setting-ttl').value = currentConfig.cacheTTL;
+      // Si allData est déjà chargé (race condition : loadData a fini avant loadConfig),
+      // on déclenche le rendu des instances maintenant que la config est disponible
+      if (allData) {
+        await loadInstancesWithKuma();
+      }
     } catch(e) {
       configRetries++;
       if (configRetries >= 3) { console.error('❌ Config inaccessible après 3 tentatives'); return; }
@@ -1534,6 +1542,7 @@
       }).length;
 
       const safeGid = Number(group.id) || escapeHtml(name);
+      const isGroupHidden = hiddenGroups.includes(name);
       html += `<div class="card" id="gcard-${safeGid}" draggable="true" data-gid="${safeGid}" ondragstart="dragStartGroup(event,this)" ondragover="dragOverGroup(event)" ondrop="dropGroup(event,this)" ondragleave="this.classList.remove('drag-over')" style="margin-bottom:16px">
         <div class="card-head">
           <div style="display:flex;align-items:center;gap:10px">
@@ -1543,8 +1552,9 @@
               onkeydown="if(event.key==='Enter'){this.blur()}else if(event.key==='Escape'){this.value=this.dataset.original;this.blur()}"
               title="Cliquer pour renommer le groupe">
             <span style="color:var(--muted);font-weight:400;font-size:12px">${upCount}/${group.monitorList.length} en ligne</span>
+          </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <button class="action-btn ${isGroupHidden?'success':''}" id="gbtn-${safeGid}" data-gname="${escapeHtml(name)}" onclick="toggleHideGroup(this.dataset.gname, ${safeGid}, this, event)" style="font-size:11px;padding:4px 8px">${isGroupHidden?'👁️ Afficher':'🚫 Masquer'}</button>
+            <button class="action-btn ${isGroupHidden ? 'success' : ''}" id="gbtn-${safeGid}" data-gname="${escapeHtml(name)}" onclick="toggleHideGroup(this.dataset.gname, ${safeGid}, this, event)" style="font-size:11px;padding:4px 8px">${isGroupHidden ? '👁️ Afficher' : '🚫 Masquer'}</button>
             <button class="btn-delete" data-gname="${escapeHtml(name)}" onclick="deleteGroup(${safeGid}, this.dataset.gname, event)" title="Supprimer ce groupe" style="font-size:13px;padding:5px 8px">🗑️</button>
           </div>
         </div>`
