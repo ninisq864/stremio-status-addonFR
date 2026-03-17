@@ -223,7 +223,18 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     console.log('📄 Groupes dans status page:', publicGroupList.map(g => `"${g.name.replace(/\n/g,'').trim()}":${g.monitorList.length}`));
 
     if (isGroup) {
-      publicGroupList.push({ name: groupName, weight: publicGroupList.length, monitorList: [] });
+      // Reconstruire le groupe avec tous ses monitors depuis kumaMonitors
+      const cleanGroupName = groupName.replace(/\n/g,'').trim().toLowerCase();
+      const kumaGroup = Object.values(kumaMonitors).find(
+        m => m.type === 'group' && m.name.replace(/\n/g,'').trim().toLowerCase() === cleanGroupName
+      );
+      const groupMonitors = kumaGroup
+        ? Object.values(kumaMonitors)
+            .filter(m => m.parent === kumaGroup.id && m.type !== 'group')
+            .map(m => ({ id: m.id, sendUrl: false }))
+        : [];
+      console.log(`📄 Réaffichage groupe "${groupName}" avec ${groupMonitors.length} monitors:`, groupMonitors.map(m => m.id));
+      publicGroupList.push({ name: groupName, weight: publicGroupList.length, monitorList: groupMonitors });
     } else {
       let targetGroup = null;
 
