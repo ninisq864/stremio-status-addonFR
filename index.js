@@ -1282,17 +1282,75 @@ app.post('/api/kuma/monitors', authMiddleware, async (req, res) => {
 // Réordonner les monitors (drag & drop)
 app.post('/api/kuma/reorder', authMiddleware, async (req, res) => {
   try {
-    const { order } = req.body; // [{ id, weight }]
+    const { order } = req.body; // [{ id, weight }] ou [{ name, weight }]
     if (!Array.isArray(order)) return res.status(400).json({ error: 'order requis' });
-    await kumaEmit('changeStatusPageSlug', order);
+
+    const pageData = await fetchStatusPageStructure();
+    if (!pageData) return res.status(500).json({ error: 'Status page inaccessible' });
+
+    // Construire un map nom/id -> groupe existant
+    const existingGroups = {};
+    (pageData.publicGroupList || []).forEach(g => {
+      existingGroups[g.name.replace(/\n/g,'').trim().toLowerCase()] = g;
+      if (g.id) existingGroups[String(g.id)] = g;
+    });
+
+    // Réordonner selon l'order reçu
+    const reordered = order
+      .map(item => {
+        const key = item.name
+          ? item.name.replace(/\n/g,'').trim().toLowerCase()
+          : String(item.id);
+        return existingGroups[key];
+      })
+      .filter(Boolean)
+      .map((g, i) => ({
+        id: g.id ?? undefined,
+        name: g.name,
+        weight: i,
+        monitorList: (g.monitorList || []).map(m => ({
+          id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
+          sendUrl: m.sendUrl ?? false,
+        })),
+      }));
+
+    // Ajouter les groupes non présents dans order (sécurité)
+    (pageData.publicGroupList || []).forEach(g => {
+      const clean = g.name.replace(/\n/g,'').trim().toLowerCase();
+      const alreadyIn = reordered.some(r => r.name.replace(/\n/g,'').trim().toLowerCase() === clean);
+      if (!alreadyIn) reordered.push({
+        id: g.id ?? undefined, name: g.name, weight: reordered.length,
+        monitorList: (g.monitorList || []).map(m => ({
+          id: typeof m.id === 'string' ? parseInt(m.id) : m.id,
+          sendUrl: m.sendUrl ?? false,
+        })),
+      });
+    });
+
+    const pageConfig = {
+      id: pageData.id ?? null, slug: STATUS_SLUG,
+      title: pageData.title ?? 'StremioFR Addons', description: pageData.description ?? '',
+      icon: pageData.icon ?? '/icon.svg', theme: pageData.theme ?? 'auto',
+      published: pageData.published ?? true, showTags: pageData.showTags ?? false,
+      domainNameList: pageData.domainNameList ?? [], customCSS: pageData.customCSS ?? '',
+      footerText: pageData.footerText ?? '', showPoweredBy: pageData.showPoweredBy ?? true,
+      autoRefreshInterval: pageData.autoRefreshInterval ?? 300,
+      analyticsType: null, analyticsId: null, analyticsScriptUrl: null, rssTitle: null,
+      showCertificateExpiry: false, showOnlyLastHeartbeat: false,
+    };
+
+    await new Promise((resolve, reject) => {
+      if (!kumaSocket || !kumaReady) return reject(new Error('Non connecté à Uptime Kuma'));
+      const timeout = setTimeout(() => reject(new Error('timeout')), 10000);
+      kumaSocket.emit('saveStatusPage', STATUS_SLUG, pageConfig, pageData.icon ?? '', reordered, (r) => {
+        clearTimeout(timeout);
+        if (r && r.ok === false) reject(new Error(r.msg));
+        else resolve(r);
+      });
+    });
+    cache = { data: null, ts: 0 };
     res.json({ ok: true });
-  } catch(e) {
-    // Fallback: essayer setMonitorOrder si disponible
-    try {
-      await kumaEmit('sortData', req.body.order);
-      res.json({ ok: true });
-    } catch(e2) { res.status(500).json({ error: e.message }); }
-  }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 function parseMonitorId(str) {

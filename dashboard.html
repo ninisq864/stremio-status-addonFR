@@ -2239,15 +2239,21 @@
 
   async function saveGroupOrder() {
     const cards = [...document.getElementById('instances-by-group').querySelectorAll('.card[data-gid]')];
-    const order = cards.map((c, i) => ({ id: c.dataset.gid, weight: i }));
+    // Envoyer le nom du groupe pour que le serveur puisse retrouver le bon groupe dans la status page
+    const order = cards.map((c, i) => ({
+      id: c.dataset.gid,
+      name: c.querySelector('.group-name-input')?.value || c.querySelector('[id^="gname-"]')?.value || '',
+      weight: i
+    }));
     try {
-      await fetch('/api/kuma/reorder', {
+      const res = await fetch('/api/kuma/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
         body: JSON.stringify({ order })
       });
-      toast('✅ Ordre des groupes sauvegardé');
-    } catch(e) { toast('⚠️ Ordre sauvegardé localement'); }
+      if (res.ok) toast('✅ Ordre sauvegardé dans Kuma');
+      else toast('⚠️ Erreur sauvegarde ordre');
+    } catch(e) { toast('⚠️ Erreur: ' + e.message); }
   }
 
   async function saveRowOrder(card) {
