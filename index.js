@@ -223,18 +223,35 @@ async function addToStatusPage(monitorId, groupName, isGroup = false, parentMoni
     console.log('📄 Groupes dans status page:', publicGroupList.map(g => `"${g.name.replace(/\n/g,'').trim()}":${g.monitorList.length}`));
 
     if (isGroup) {
-      // Reconstruire le groupe avec tous ses monitors depuis kumaMonitors
+      // Reconstruire la liste complète dans l'ordre Kuma (weight/id) pour préserver la position
       const cleanGroupName = groupName.replace(/\n/g,'').trim().toLowerCase();
-      const kumaGroup = Object.values(kumaMonitors).find(
-        m => m.type === 'group' && m.name.replace(/\n/g,'').trim().toLowerCase() === cleanGroupName
-      );
-      const groupMonitors = kumaGroup
-        ? Object.values(kumaMonitors)
-            .filter(m => m.parent === kumaGroup.id && m.type !== 'group')
-            .map(m => ({ id: m.id, sendUrl: false }))
-        : [];
-      console.log(`📄 Réaffichage groupe "${groupName}" avec ${groupMonitors.length} monitors:`, groupMonitors.map(m => m.id));
-      publicGroupList.push({ name: groupName, weight: publicGroupList.length, monitorList: groupMonitors });
+
+      // Tous les groupes Kuma triés par weight puis id
+      const allKumaGroups = Object.values(kumaMonitors)
+        .filter(m => m.type === 'group')
+        .sort((a, b) => (a.weight ?? a.id) - (b.weight ?? b.id));
+
+      // Reconstruire publicGroupList en ordre Kuma, en ajoutant le groupe réaffiché à sa place
+      const newGroupList = [];
+      for (const kg of allKumaGroups) {
+        const kgClean = kg.name.replace(/\n/g,'').trim().toLowerCase();
+        // Chercher s'il est déjà dans la status page
+        const existing = publicGroupList.find(g => g.name.replace(/\n/g,'').trim().toLowerCase() === kgClean);
+        if (existing) {
+          newGroupList.push(existing);
+        } else if (kgClean === cleanGroupName) {
+          // C'est le groupe qu'on réaffiche — le reconstruire avec ses monitors
+          const groupMonitors = Object.values(kumaMonitors)
+            .filter(m => m.parent === kg.id && m.type !== 'group')
+            .map(m => ({ id: m.id, sendUrl: false }));
+          console.log(`📄 Réaffichage groupe "${groupName}" à sa position Kuma, ${groupMonitors.length} monitors`);
+          newGroupList.push({ name: kg.name, weight: kg.weight ?? newGroupList.length, monitorList: groupMonitors });
+        }
+        // Si absent et pas le groupe cible → il était déjà masqué, on ne l'ajoute pas
+      }
+      // Remplacer publicGroupList par la version réordonnée
+      publicGroupList.length = 0;
+      newGroupList.forEach(g => publicGroupList.push(g));
     } else {
       let targetGroup = null;
 
@@ -1066,8 +1083,8 @@ app.post('/api/kuma/rebuild-status-page', authMiddleware, async (req, res) => {
     const pageData = await fetchStatusPageStructure();
     if (!pageData) return res.status(500).json({ error: 'Status page inaccessible' });
 
-    // Construire la liste des groupes depuis kumaMonitors
-    const groups = Object.values(kumaMonitors).filter(m => m.type === 'group');
+    // Construire la liste des groupes depuis kumaMonitors, triés par weight/id (ordre Kuma)
+    const groups = Object.values(kumaMonitors).filter(m => m.type === 'group').sort((a, b) => (a.weight ?? a.id) - (b.weight ?? b.id));
     const newGroupList = [];
 
     for (const group of groups) {
